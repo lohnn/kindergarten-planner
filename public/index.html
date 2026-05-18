@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kinder Planner</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <div class="header-top">
+      <h1>🎒 Kinder Planner</h1>
+      <button class="icon-btn" id="settings-btn" title="Settings" aria-label="Settings">⚙️</button>
+    </div>
+
+    <div class="iam-bar">
+      <span class="iam-label">I am:</span>
+      <button class="iam-btn" id="iam-a" data-userid="1"></button>
+      <button class="iam-btn" id="iam-b" data-userid="2"></button>
+    </div>
+  </header>
+
+  <main>
+    <nav class="week-nav">
+      <button class="nav-btn" id="prev-week" aria-label="Previous week">‹</button>
+      <span id="week-label">Loading…</span>
+      <button class="nav-btn" id="next-week" aria-label="Next week">›</button>
+    </nav>
+
+    <div id="grid-container">
+      <div id="loading" class="loading-msg">Loading…</div>
+      <div id="error" class="error-msg hidden"></div>
+      <table id="week-grid" class="hidden" aria-label="Weekly schedule">
+        <thead>
+          <tr>
+            <th class="row-label"></th>
+            <th class="day-col" data-col="0">Mon</th>
+            <th class="day-col" data-col="1">Tue</th>
+            <th class="day-col" data-col="2">Wed</th>
+            <th class="day-col" data-col="3">Thu</th>
+            <th class="day-col" data-col="4">Fri</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr id="row-a">
+            <td class="row-label user-a-label"><span id="label-a">Person A</span></td>
+            <td class="day-cell" data-col="0" data-row="a"></td>
+            <td class="day-cell" data-col="1" data-row="a"></td>
+            <td class="day-cell" data-col="2" data-row="a"></td>
+            <td class="day-cell" data-col="3" data-row="a"></td>
+            <td class="day-cell" data-col="4" data-row="a"></td>
+          </tr>
+          <tr id="row-b">
+            <td class="row-label user-b-label"><span id="label-b">Person B</span></td>
+            <td class="day-cell" data-col="0" data-row="b"></td>
+            <td class="day-cell" data-col="1" data-row="b"></td>
+            <td class="day-cell" data-col="2" data-row="b"></td>
+            <td class="day-cell" data-col="3" data-row="b"></td>
+            <td class="day-cell" data-col="4" data-row="b"></td>
+          </tr>
+          <tr id="row-dropoff">
+            <td class="row-label">Drop-off</td>
+            <td class="day-cell event-cell" data-col="0" data-row="dropoff"></td>
+            <td class="day-cell event-cell" data-col="1" data-row="dropoff"></td>
+            <td class="day-cell event-cell" data-col="2" data-row="dropoff"></td>
+            <td class="day-cell event-cell" data-col="3" data-row="dropoff"></td>
+            <td class="day-cell event-cell" data-col="4" data-row="dropoff"></td>
+          </tr>
+          <tr id="row-pickup">
+            <td class="row-label">Pick-up</td>
+            <td class="day-cell event-cell" data-col="0" data-row="pickup"></td>
+            <td class="day-cell event-cell" data-col="1" data-row="pickup"></td>
+            <td class="day-cell event-cell" data-col="2" data-row="pickup"></td>
+            <td class="day-cell event-cell" data-col="3" data-row="pickup"></td>
+            <td class="day-cell event-cell" data-col="4" data-row="pickup"></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <!-- Day detail modal -->
+  <div id="day-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-backdrop"></div>
+    <div class="modal-sheet">
+      <div class="modal-header">
+        <h2 id="modal-title">Monday, May 19</h2>
+        <button class="icon-btn close-btn" id="modal-close" aria-label="Close">✕</button>
+      </div>
+      <div class="modal-body">
+        <section class="modal-section">
+          <h3>Work Location</h3>
+          <div class="location-row">
+            <span class="user-a-tag" id="modal-name-a">Person A</span>
+            <div class="toggle-group" id="loc-toggle-a">
+              <button class="toggle-btn" data-value="home">🏠 Home</button>
+              <button class="toggle-btn" data-value="office">🏢 Office</button>
+            </div>
+          </div>
+          <div class="location-row">
+            <span class="user-b-tag" id="modal-name-b">Person B</span>
+            <div class="toggle-group" id="loc-toggle-b">
+              <button class="toggle-btn" data-value="home">🏠 Home</button>
+              <button class="toggle-btn" data-value="office">🏢 Office</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="modal-section">
+          <h3>Drop-off</h3>
+          <div class="assign-row">
+            <div class="assign-group" id="dropoff-assign">
+              <button class="assign-btn" data-userid="1" id="dropoff-btn-a">Person A</button>
+              <button class="assign-btn" data-userid="2" id="dropoff-btn-b">Person B</button>
+              <button class="assign-btn" data-userid="0">Nobody</button>
+            </div>
+            <input type="time" id="dropoff-time" class="time-input" value="08:00" />
+          </div>
+        </section>
+
+        <section class="modal-section">
+          <h3>Pick-up</h3>
+          <div class="assign-row">
+            <div class="assign-group" id="pickup-assign">
+              <button class="assign-btn" data-userid="1" id="pickup-btn-a">Person A</button>
+              <button class="assign-btn" data-userid="2" id="pickup-btn-b">Person B</button>
+              <button class="assign-btn" data-userid="0">Nobody</button>
+            </div>
+            <input type="time" id="pickup-time" class="time-input" value="15:00" />
+          </div>
+        </section>
+      </div>
+      <div class="modal-footer">
+        <button class="save-btn" id="modal-save">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings modal -->
+  <div id="settings-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+    <div class="modal-backdrop"></div>
+    <div class="modal-sheet modal-sheet--sm">
+      <div class="modal-header">
+        <h2 id="settings-title">Settings</h2>
+        <button class="icon-btn close-btn" id="settings-close" aria-label="Close">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="settings-row">
+          <label class="user-a-tag" for="name-input-a">Person A name</label>
+          <input type="text" id="name-input-a" class="name-input" placeholder="Name" />
+        </div>
+        <div class="settings-row">
+          <label class="user-b-tag" for="name-input-b">Person B name</label>
+          <input type="text" id="name-input-b" class="name-input" placeholder="Name" />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="save-btn" id="settings-save">Save Names</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
