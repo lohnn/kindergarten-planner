@@ -1,7 +1,8 @@
 FROM node:lts-alpine
+RUN apk add --no-cache python3 make g++
 WORKDIR /app
 COPY package*.json ./
-RUN npm install --production
+RUN npm install --omit=dev
 COPY . .
 EXPOSE 3000
 CMD ["node", "server.js"]
