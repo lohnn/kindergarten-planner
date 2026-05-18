@@ -1,19 +1,18 @@
 # Kindergarten Planner — Raspberry Pi Deployment
 
-Docker Compose based deployment for Raspberry Pi 4 (ARM64).
+Docker Compose based deployment for Raspberry Pi 4 (ARM64).  
+Uses [Traefik](https://traefik.io) as the reverse proxy — no separate config files needed, routing is driven by Docker labels.
 
 ## Prerequisites
 
-Install Docker and Docker Compose on Raspberry Pi OS:
+Install Docker on Raspberry Pi OS:
 
 ```bash
-# Install Docker
 curl -fsSL https://get.docker.com | sh
 sudo usermod -aG docker $USER
 newgrp docker
 
-# Docker Compose is included with Docker (as `docker compose`)
-# Verify
+# Docker Compose is bundled with Docker (as `docker compose`)
 docker compose version
 ```
 
@@ -50,6 +49,10 @@ docker compose logs -f
 
 # View logs for a specific service
 docker compose logs -f app
+
+# View Traefik dashboard (if you enable it)
+# Add --api.insecure=true to traefik command in docker-compose.yml
+# then open http://<pi-ip>:8080
 
 # Restart services
 docker compose restart

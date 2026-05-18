@@ -110,9 +110,7 @@
           <h3>Drop-off</h3>
           <div class="assign-row">
             <div class="assign-group" id="dropoff-assign">
-              <button class="assign-btn" data-userid="1" id="dropoff-btn-a">Person A</button>
-              <button class="assign-btn" data-userid="2" id="dropoff-btn-b">Person B</button>
-              <button class="assign-btn" data-userid="0">Nobody</button>
+              <!-- populated dynamically -->
             </div>
             <input type="time" id="dropoff-time" class="time-input" value="08:00" />
           </div>
@@ -122,9 +120,7 @@
           <h3>Pick-up</h3>
           <div class="assign-row">
             <div class="assign-group" id="pickup-assign">
-              <button class="assign-btn" data-userid="1" id="pickup-btn-a">Person A</button>
-              <button class="assign-btn" data-userid="2" id="pickup-btn-b">Person B</button>
-              <button class="assign-btn" data-userid="0">Nobody</button>
+              <!-- populated dynamically -->
             </div>
             <input type="time" id="pickup-time" class="time-input" value="15:00" />
           </div>
@@ -145,14 +141,26 @@
         <button class="icon-btn close-btn" id="settings-close" aria-label="Close">✕</button>
       </div>
       <div class="modal-body">
-        <div class="settings-row">
-          <label class="user-a-tag" for="name-input-a">Person A name</label>
-          <input type="text" id="name-input-a" class="name-input" placeholder="Name" />
-        </div>
-        <div class="settings-row">
-          <label class="user-b-tag" for="name-input-b">Person B name</label>
-          <input type="text" id="name-input-b" class="name-input" placeholder="Name" />
-        </div>
+        <section class="modal-section">
+          <h3>Primary People</h3>
+          <div class="settings-row">
+            <label class="user-a-tag" for="name-input-a">Person A</label>
+            <input type="text" id="name-input-a" class="name-input" placeholder="Name" />
+          </div>
+          <div class="settings-row">
+            <label class="user-b-tag" for="name-input-b">Person B</label>
+            <input type="text" id="name-input-b" class="name-input" placeholder="Name" />
+          </div>
+        </section>
+
+        <section class="modal-section">
+          <h3>Occasional People</h3>
+          <div id="occasional-list" class="occasional-list"></div>
+          <div class="occ-add-row">
+            <input type="text" id="occ-name-input" class="name-input" placeholder="e.g. Grandma" />
+            <button class="occ-add-btn" id="occ-add-btn" onclick="addOccasional()">+ Add</button>
+          </div>
+        </section>
       </div>
       <div class="modal-footer">
         <button class="save-btn" id="settings-save">Save Names</button>

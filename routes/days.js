@@ -2,8 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 
-const ALLOWED_FIELDS = ['work_location', 'dropoff_assigned', 'dropoff_time', 'pickup_assigned', 'pickup_time'];
-
+// PUT /api/days/:date/user/:userId — WFH updates only (primary users)
 router.put('/:date/user/:userId', (req, res) => {
   const { date, userId } = req.params;
 
@@ -11,30 +10,20 @@ router.put('/:date/user/:userId', (req, res) => {
     return res.status(400).json({ error: 'Invalid date format, use YYYY-MM-DD' });
   }
 
-  const user = db.prepare('SELECT id FROM users WHERE id = ?').get(parseInt(userId, 10));
+  const user = db.prepare('SELECT * FROM users WHERE id = ?').get(parseInt(userId, 10));
   if (!user) return res.status(404).json({ error: 'User not found' });
+  if (user.type !== 'primary') return res.status(400).json({ error: 'Only primary users have WFH tracking' });
 
-  const body = req.body;
-  const fields = Object.keys(body).filter(k => ALLOWED_FIELDS.includes(k));
-  if (fields.length === 0) return res.status(400).json({ error: 'No valid fields provided' });
+  const { work_location } = req.body;
+  if (!work_location || !['home', 'office'].includes(work_location)) {
+    return res.status(400).json({ error: 'work_location must be "home" or "office"' });
+  }
 
-  // Ensure row exists
   db.prepare('INSERT OR IGNORE INTO days (date, user_id) VALUES (?, ?)').run(date, user.id);
-
-  const setClauses = fields.map(f => `${f} = ?`).join(', ');
-  const values = fields.map(f => {
-    if (f === 'dropoff_assigned' || f === 'pickup_assigned') return body[f] ? 1 : 0;
-    return body[f];
-  });
-
-  db.prepare(`UPDATE days SET ${setClauses} WHERE date = ? AND user_id = ?`).run(...values, date, user.id);
+  db.prepare('UPDATE days SET work_location = ? WHERE date = ? AND user_id = ?').run(work_location, date, user.id);
 
   const row = db.prepare('SELECT * FROM days WHERE date = ? AND user_id = ?').get(date, user.id);
-  res.json({
-    ...row,
-    dropoff_assigned: row.dropoff_assigned === 1,
-    pickup_assigned: row.pickup_assigned === 1
-  });
+  res.json(row);
 });
 
 module.exports = router;

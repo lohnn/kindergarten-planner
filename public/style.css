@@ -297,7 +297,7 @@ td.has-conflict .conflict-icon { color: var(--color-conflict); }
   animation: slide-up 0.22s ease-out;
 }
 
-.modal-sheet--sm { max-height: 70dvh; }
+.modal-sheet--sm { max-height: 85dvh; }
 
 @keyframes slide-up {
   from { transform: translateY(60px); opacity: 0; }
@@ -406,6 +406,7 @@ td.has-conflict .conflict-icon { color: var(--color-conflict); }
   gap: 4px;
   flex: 1;
   min-width: 200px;
+  flex-wrap: wrap;
 }
 
 .assign-btn {
@@ -472,6 +473,44 @@ td.has-conflict .conflict-icon { color: var(--color-conflict); }
 .save-btn:hover { background: var(--color-a-text); }
 .save-btn:disabled { background: #94a3b8; cursor: not-allowed; }
 
+/* Occasional user color — assign tag */
+.assign-tag.user-occ {
+  background: #8b5cf6;
+  color: #fff;
+}
+
+/* Dynamic assign button variants */
+.assign-btn--nobody.active {
+  border-color: #94a3b8;
+  background: #94a3b8;
+  color: #fff;
+}
+.assign-btn--user-a.active {
+  border-color: var(--color-a);
+  background: var(--color-a);
+  color: #fff;
+}
+.assign-btn--user-b.active {
+  border-color: var(--color-b);
+  background: var(--color-b);
+  color: #fff;
+}
+.assign-btn--occ.active {
+  border-color: #8b5cf6;
+  background: #8b5cf6;
+  color: #fff;
+}
+
+/* separator dot between primary/occasional assign buttons */
+.assign-sep {
+  display: flex;
+  align-items: center;
+  color: var(--border);
+  font-size: 1.1rem;
+  padding: 0 2px;
+  user-select: none;
+}
+
 /* Settings */
 .settings-row {
   display: flex;
@@ -511,6 +550,65 @@ td.has-conflict .conflict-icon { color: var(--color-conflict); }
 }
 .toast.show { opacity: 1; }
 .toast.error { background: var(--color-conflict); }
+
+/* Occasional People list in settings */
+.occasional-list {
+  margin-bottom: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.occ-empty {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.occ-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f3f0ff;
+  border: 1px solid #c4b5fd;
+  border-radius: 8px;
+  padding: 7px 10px;
+}
+
+.occ-name {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #5b21b6;
+}
+
+.occ-delete {
+  font-size: 1.1rem;
+  color: #7c3aed;
+  line-height: 1;
+  padding: 2px 6px;
+}
+.occ-delete:hover { background: #ede9fe; }
+
+.occ-add-row {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.occ-add-btn {
+  padding: 9px 14px;
+  border: 1.5px solid #8b5cf6;
+  border-radius: 8px;
+  background: #f3f0ff;
+  color: #5b21b6;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s;
+}
+.occ-add-btn:hover { background: #ede9fe; }
+.occ-add-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* ── Responsive tweaks ── */
 @media (min-width: 480px) {

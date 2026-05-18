@@ -20,6 +20,7 @@ app.use((req, res, next) => {
 app.use('/api/weeks', require('./routes/weeks'));
 app.use('/api/days', require('./routes/days'));
 app.use('/api/users', require('./routes/users'));
+app.use('/api/assignments', require('./routes/assignments'));
 
 // Static files
 app.use(express.static(path.join(__dirname, 'public')));

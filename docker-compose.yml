@@ -1,4 +1,16 @@
 services:
+  traefik:
+    image: traefik:v3.0
+    restart: unless-stopped
+    command:
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+    ports:
+      - "80:80"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+
   app:
     build: .
     restart: unless-stopped
@@ -9,13 +21,8 @@ services:
       - NODE_ENV=production
     expose:
       - "3000"
-
-  nginx:
-    image: nginx:alpine
-    restart: unless-stopped
-    ports:
-      - "80:80"
-    volumes:
-      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
-    depends_on:
-      - app
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.kinder.rule=PathPrefix(`/`)"
+      - "traefik.http.routers.kinder.entrypoints=web"
+      - "traefik.http.services.kinder.loadbalancer.server.port=3000"

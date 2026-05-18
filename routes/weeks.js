@@ -4,9 +4,8 @@ const db = require('../db');
 
 // ISO 8601 week to Monday date
 function weekToMonday(year, week) {
-  // Jan 4 is always in week 1
   const jan4 = new Date(Date.UTC(year, 0, 4));
-  const dayOfWeek = jan4.getUTCDay() || 7; // Mon=1..Sun=7
+  const dayOfWeek = jan4.getUTCDay() || 7;
   const monday = new Date(jan4);
   monday.setUTCDate(jan4.getUTCDate() - (dayOfWeek - 1) + (week - 1) * 7);
   return monday;
@@ -34,58 +33,67 @@ router.get('/:year/:week', (req, res) => {
     dates.push(toDateStr(d));
   }
 
-  const users = db.prepare('SELECT * FROM users').all();
+  const allUsers = db.prepare('SELECT * FROM users ORDER BY type DESC, id ASC').all();
+  const primaryUsers = allUsers.filter(u => u.type === 'primary');
 
-  // Ensure day rows exist for all user/date combos
-  const upsertDay = db.prepare(
-    'INSERT OR IGNORE INTO days (date, user_id) VALUES (?, ?)'
-  );
+  // Build user lookup map
+  const userMap = {};
+  for (const u of allUsers) userMap[u.id] = u;
+
+  // Ensure day rows exist for primary users only
+  const upsertDay = db.prepare('INSERT OR IGNORE INTO days (date, user_id) VALUES (?, ?)');
   for (const date of dates) {
-    for (const user of users) {
+    for (const user of primaryUsers) {
       upsertDay.run(date, user.id);
     }
   }
 
-  const getDays = db.prepare(
-    'SELECT d.*, u.name FROM days d JOIN users u ON u.id = d.user_id WHERE d.date IN (' +
+  // Fetch WFH rows for primary users
+  const wfhRows = db.prepare(
+    'SELECT d.date, d.user_id, d.work_location, u.name FROM days d JOIN users u ON u.id = d.user_id WHERE d.date IN (' +
     dates.map(() => '?').join(',') + ') ORDER BY d.date, d.user_id'
-  );
-  const rows = getDays.all(...dates);
+  ).all(...dates);
 
-  // Group by date
-  const dayMap = {};
-  for (const date of dates) dayMap[date] = [];
-  for (const row of rows) {
-    dayMap[row.date].push(row);
-  }
+  // Fetch assignments
+  const assignmentRows = db.prepare(
+    'SELECT * FROM assignments WHERE date IN (' + dates.map(() => '?').join(',') + ')'
+  ).all(...dates);
+  const assignmentMap = {};
+  for (const a of assignmentRows) assignmentMap[a.date] = a;
+
+  // Group WFH by date
+  const wfhMap = {};
+  for (const date of dates) wfhMap[date] = [];
+  for (const row of wfhRows) wfhMap[row.date].push(row);
 
   const days = dates.map((date, i) => {
-    const userRows = dayMap[date];
+    const assignment = assignmentMap[date] || null;
     const conflicts = [];
-    const dropoffs = userRows.filter(r => r.dropoff_assigned).length;
-    const pickups = userRows.filter(r => r.pickup_assigned).length;
-    if (dropoffs === 0) conflicts.push('no_dropoff');
-    if (dropoffs === users.length) conflicts.push('double_dropoff');
-    if (pickups === 0) conflicts.push('no_pickup');
-    if (pickups === users.length) conflicts.push('double_pickup');
+    if (!assignment || assignment.dropoff_user_id == null) conflicts.push('no_dropoff');
+    if (!assignment || assignment.pickup_user_id == null) conflicts.push('no_pickup');
+
+    const dropoffUser = assignment && assignment.dropoff_user_id != null
+      ? { user_id: assignment.dropoff_user_id, name: userMap[assignment.dropoff_user_id]?.name ?? null, time: assignment.dropoff_time }
+      : null;
+    const pickupUser = assignment && assignment.pickup_user_id != null
+      ? { user_id: assignment.pickup_user_id, name: userMap[assignment.pickup_user_id]?.name ?? null, time: assignment.pickup_time }
+      : null;
 
     return {
       date,
       weekday: WEEKDAYS[i],
       conflicts,
-      users: userRows.map(r => ({
+      work_locations: wfhMap[date].map(r => ({
         user_id: r.user_id,
         name: r.name,
-        work_location: r.work_location,
-        dropoff_assigned: r.dropoff_assigned === 1,
-        dropoff_time: r.dropoff_time,
-        pickup_assigned: r.pickup_assigned === 1,
-        pickup_time: r.pickup_time
-      }))
+        work_location: r.work_location
+      })),
+      dropoff: dropoffUser,
+      pickup: pickupUser
     };
   });
 
-  res.json({ week, year, days });
+  res.json({ week, year, users: allUsers, days });
 });
 
 module.exports = router;

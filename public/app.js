@@ -3,7 +3,6 @@
 // ── ISO week helpers ──────────────────────────────────────────────────────────
 function getISOWeek(date) {
   const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
-  // Set to nearest Thursday (makes week start on Monday)
   d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7));
   const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
   return {
@@ -13,7 +12,6 @@ function getISOWeek(date) {
 }
 
 function addWeeks(year, week, delta) {
-  // Convert to Monday date, add delta*7 days, recompute
   const monday = weekToMonday(year, week);
   monday.setUTCDate(monday.getUTCDate() + delta * 7);
   return getISOWeek(monday);
@@ -62,17 +60,37 @@ async function apiPut(path, body) {
   return res.json();
 }
 
+async function apiPost(path, body) {
+  const res = await fetch(path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `POST ${path} failed: ${res.status}`);
+  }
+  return res.json();
+}
+
+async function apiDelete(path) {
+  const res = await fetch(path, { method: 'DELETE' });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || `DELETE ${path} failed: ${res.status}`);
+  }
+  return res.json().catch(() => ({}));
+}
+
 // ── State ─────────────────────────────────────────────────────────────────────
 const state = {
-  users: [],          // [{id, name}, ...]
-  activeUserId: null, // from localStorage
+  users: [],          // [{id, name, type}, ...] type: 'primary' | 'occasional'
+  activeUserId: null,
   year: null,
   week: null,
-  weekData: null,     // API response
-  // day modal
+  weekData: null,
   modalDate: null,
-  modalDayData: null, // day object from weekData
-  // draft edits for modal
+  modalDayData: null,
   draft: {
     locA: null,
     locB: null,
@@ -82,6 +100,32 @@ const state = {
     pickupTime: '15:00',
   }
 };
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function primaryUsers() {
+  return state.users.filter(u => u.type === 'primary' || !u.type);
+}
+
+function occasionalUsers() {
+  return state.users.filter(u => u.type === 'occasional');
+}
+
+function allUsers() {
+  return state.users;
+}
+
+function userById(id) {
+  return state.users.find(u => u.id === id) || null;
+}
+
+// Color class for a user: primary users get user-a / user-b, occasional get user-occ
+function userColorClass(userId) {
+  const primaries = primaryUsers();
+  const idx = primaries.findIndex(u => u.id === userId);
+  if (idx === 0) return 'user-a';
+  if (idx === 1) return 'user-b';
+  return 'user-occ';
+}
 
 // ── Toast ─────────────────────────────────────────────────────────────────────
 let toastTimer = null;
@@ -102,17 +146,14 @@ function showToast(msg, isError = false) {
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 async function init() {
-  // Load saved identity
   const savedId = parseInt(localStorage.getItem('kinder_user_id') || '0', 10);
   state.activeUserId = savedId || null;
 
-  // Load current week
   const now = new Date();
   const { year, week } = getISOWeek(now);
   state.year = year;
   state.week = week;
 
-  // Fetch users
   try {
     state.users = await apiGet('/api/users');
   } catch (e) {
@@ -127,7 +168,8 @@ async function init() {
 
 // ── Render identity bar ───────────────────────────────────────────────────────
 function renderIdentityBar() {
-  const [userA, userB] = state.users;
+  const primaries = primaryUsers();
+  const [userA, userB] = primaries;
   const btnA = document.getElementById('iam-a');
   const btnB = document.getElementById('iam-b');
   if (userA) { btnA.textContent = userA.name; btnA.dataset.userid = userA.id; }
@@ -164,9 +206,9 @@ function showError(msg) {
 // ── Render grid ───────────────────────────────────────────────────────────────
 function renderGrid() {
   const { days } = state.weekData;
-  const [userA, userB] = state.users;
+  const primaries = primaryUsers();
+  const [userA, userB] = primaries;
 
-  // Update row labels with current names
   document.getElementById('label-a').textContent = userA ? userA.name : 'Person A';
   document.getElementById('label-b').textContent = userB ? userB.name : 'Person B';
 
@@ -181,90 +223,78 @@ function renderGrid() {
     // Header
     const th = headers[col];
     th.innerHTML = `${WEEKDAY_SHORT[col]}<span class="date-num">${dateNum}</span>`;
-    th.classList.toggle('has-conflict', day.conflicts.length > 0);
+    th.classList.toggle('has-conflict', (day.conflicts || []).length > 0);
 
-    const userAData = day.users.find(u => userA && u.user_id === userA.id);
-    const userBData = day.users.find(u => userB && u.user_id === userB.id);
+    // work_locations array from new API shape
+    const workLocs = day.work_locations || [];
+    const userALoc = workLocs.find(u => userA && u.user_id === userA.id);
+    const userBLoc = workLocs.find(u => userB && u.user_id === userB.id);
 
     // Row A — work location
     const cellA = document.querySelector(`tr#row-a td[data-col="${col}"]`);
-    cellA.innerHTML = renderLocCell(userAData);
+    cellA.innerHTML = renderLocCell(userALoc);
 
     // Row B — work location
     const cellB = document.querySelector(`tr#row-b td[data-col="${col}"]`);
-    cellB.innerHTML = renderLocCell(userBData);
+    cellB.innerHTML = renderLocCell(userBLoc);
 
     // Drop-off
     const cellDrop = document.querySelector(`tr#row-dropoff td[data-col="${col}"]`);
-    const dropConflict = day.conflicts.some(c => c.includes('dropoff'));
+    const dropConflict = (day.conflicts || []).some(c => c.includes('dropoff'));
     cellDrop.classList.toggle('has-conflict', dropConflict);
-    cellDrop.innerHTML = renderEventCell('dropoff', day, userA, userB, dropConflict);
+    cellDrop.innerHTML = renderEventCell(day.dropoff, dropConflict);
 
     // Pick-up
     const cellPick = document.querySelector(`tr#row-pickup td[data-col="${col}"]`);
-    const pickConflict = day.conflicts.some(c => c.includes('pickup'));
+    const pickConflict = (day.conflicts || []).some(c => c.includes('pickup'));
     cellPick.classList.toggle('has-conflict', pickConflict);
-    cellPick.innerHTML = renderEventCell('pickup', day, userA, userB, pickConflict);
+    cellPick.innerHTML = renderEventCell(day.pickup, pickConflict);
   });
 }
 
-function renderLocCell(userData) {
-  if (!userData) return '–';
-  const loc = userData.work_location || 'home';
+function renderLocCell(locData) {
+  if (!locData) return '–';
+  const loc = locData.work_location || 'home';
   const icon = loc === 'office' ? '🏢' : '🏠';
   const label = loc === 'office' ? 'Office' : 'Home';
   return `<div class="work-loc"><span>${icon}</span><span class="work-loc-text">${label}</span></div>`;
 }
 
-function renderEventCell(type, day, userA, userB) {
-  const assigned = day.users.filter(u => u[`${type}_assigned`]);
-  if (assigned.length === 0) {
+// assignment: { user_id, name, time } or null
+function renderEventCell(assignment, isConflict) {
+  if (!assignment) {
     return `<span class="conflict-icon" title="Nobody assigned">⚠️</span>`;
   }
-  if (assigned.length > 1) {
-    return `<span class="conflict-icon" title="Both assigned">⚠️</span>`;
-  }
-  const u = assigned[0];
-  const isA = userA && u.user_id === userA.id;
-  const cls = isA ? 'user-a' : 'user-b';
-  const initials = u.name ? u.name.slice(0, 2) : '?';
-  const time = u[`${type}_time`] || '';
-  return `<span class="assign-tag ${cls}">${initials}</span><span class="event-time">${time}</span>`;
+  const cls = userColorClass(assignment.user_id);
+  const initials = assignment.name ? assignment.name.slice(0, 2) : '?';
+  const time = assignment.time || '';
+  return `<span class="assign-tag ${cls}" title="${assignment.name}">${initials}</span><span class="event-time">${time}</span>`;
 }
 
 // ── Event listeners ───────────────────────────────────────────────────────────
 function setupEventListeners() {
-  // Identity buttons
-  document.getElementById('iam-a').addEventListener('click', () => selectUser(state.users[0]?.id));
-  document.getElementById('iam-b').addEventListener('click', () => selectUser(state.users[1]?.id));
+  const primaries = primaryUsers();
 
-  // Week nav
+  document.getElementById('iam-a').addEventListener('click', () => selectUser(primaries[0]?.id));
+  document.getElementById('iam-b').addEventListener('click', () => selectUser(primaries[1]?.id));
+
   document.getElementById('prev-week').addEventListener('click', () => navigateWeek(-1));
   document.getElementById('next-week').addEventListener('click', () => navigateWeek(1));
 
-  // Click on day column header → open modal
   document.querySelectorAll('#week-grid thead th.day-col').forEach(th => {
     th.addEventListener('click', () => openDayModal(parseInt(th.dataset.col)));
   });
 
-  // Click on any day cell → open modal for that column
   document.querySelectorAll('#week-grid td.day-cell').forEach(td => {
     td.addEventListener('click', () => openDayModal(parseInt(td.dataset.col)));
   });
 
-  // Day modal controls
   document.getElementById('modal-close').addEventListener('click', closeModal);
   document.querySelector('#day-modal .modal-backdrop').addEventListener('click', closeModal);
 
-  // Location toggles
   setupToggleGroup('loc-toggle-a', val => { state.draft.locA = val; });
   setupToggleGroup('loc-toggle-b', val => { state.draft.locB = val; });
 
-  // Assign buttons
-  setupAssignGroup('dropoff-assign', uid => { state.draft.dropoffUserId = uid; });
-  setupAssignGroup('pickup-assign', uid => { state.draft.pickupUserId = uid; });
-
-  // Time inputs
   document.getElementById('dropoff-time').addEventListener('change', e => {
     state.draft.dropoffTime = e.target.value;
   });
@@ -272,10 +302,8 @@ function setupEventListeners() {
     state.draft.pickupTime = e.target.value;
   });
 
-  // Save
   document.getElementById('modal-save').addEventListener('click', saveDayModal);
 
-  // Settings
   document.getElementById('settings-btn').addEventListener('click', openSettings);
   document.getElementById('settings-close').addEventListener('click', closeSettings);
   document.querySelector('#settings-modal .modal-backdrop').addEventListener('click', closeSettings);
@@ -296,7 +324,7 @@ function navigateWeek(delta) {
   loadWeek();
 }
 
-// ── Toggle + Assign helpers ───────────────────────────────────────────────────
+// ── Toggle helpers ────────────────────────────────────────────────────────────
 function setupToggleGroup(groupId, onChange) {
   const group = document.getElementById(groupId);
   group.querySelectorAll('.toggle-btn').forEach(btn => {
@@ -308,18 +336,6 @@ function setupToggleGroup(groupId, onChange) {
   });
 }
 
-function setupAssignGroup(groupId, onChange) {
-  const group = document.getElementById(groupId);
-  group.querySelectorAll('.assign-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      group.querySelectorAll('.assign-btn').forEach(b => b.classList.remove('active'));
-      btn.classList.add('active');
-      const uid = parseInt(btn.dataset.userid, 10);
-      onChange(uid === 0 ? null : uid);
-    });
-  });
-}
-
 function setToggleActive(groupId, value) {
   const group = document.getElementById(groupId);
   group.querySelectorAll('.toggle-btn').forEach(btn => {
@@ -327,16 +343,61 @@ function setToggleActive(groupId, value) {
   });
 }
 
-function setAssignActive(groupId, userId) {
-  const group = document.getElementById(groupId);
-  group.querySelectorAll('.assign-btn').forEach(btn => {
-    const btnUid = parseInt(btn.dataset.userid, 10);
-    if (userId === null) {
-      btn.classList.toggle('active', btnUid === 0);
-    } else {
-      btn.classList.toggle('active', btnUid === userId);
-    }
+// ── Dynamic assign buttons (built at modal open time) ────────────────────────
+function buildAssignButtons(containerId, selectedUserId, onSelect) {
+  const container = document.getElementById(containerId);
+  container.innerHTML = '';
+
+  // "Nobody" button
+  const nobodyBtn = document.createElement('button');
+  nobodyBtn.className = 'assign-btn assign-btn--nobody';
+  nobodyBtn.textContent = 'Nobody';
+  nobodyBtn.dataset.userid = '0';
+  nobodyBtn.addEventListener('click', () => {
+    container.querySelectorAll('.assign-btn').forEach(b => b.classList.remove('active'));
+    nobodyBtn.classList.add('active');
+    onSelect(null);
   });
+  if (selectedUserId === null) nobodyBtn.classList.add('active');
+  container.appendChild(nobodyBtn);
+
+  // Primary users first
+  primaryUsers().forEach(u => {
+    const btn = document.createElement('button');
+    btn.className = `assign-btn assign-btn--${userColorClass(u.id)}`;
+    btn.textContent = u.name;
+    btn.dataset.userid = String(u.id);
+    btn.addEventListener('click', () => {
+      container.querySelectorAll('.assign-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      onSelect(u.id);
+    });
+    if (selectedUserId === u.id) btn.classList.add('active');
+    container.appendChild(btn);
+  });
+
+  // Occasional users
+  const occs = occasionalUsers();
+  if (occs.length > 0) {
+    const sep = document.createElement('span');
+    sep.className = 'assign-sep';
+    sep.textContent = '·';
+    container.appendChild(sep);
+
+    occs.forEach(u => {
+      const btn = document.createElement('button');
+      btn.className = 'assign-btn assign-btn--occ';
+      btn.textContent = u.name;
+      btn.dataset.userid = String(u.id);
+      btn.addEventListener('click', () => {
+        container.querySelectorAll('.assign-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        onSelect(u.id);
+      });
+      if (selectedUserId === u.id) btn.classList.add('active');
+      container.appendChild(btn);
+    });
+  }
 }
 
 // ── Day modal ─────────────────────────────────────────────────────────────────
@@ -346,15 +407,12 @@ function openDayModal(col) {
   state.modalDate = day.date;
   state.modalDayData = day;
 
-  const [userA, userB] = state.users;
+  const primaries = primaryUsers();
+  const [userA, userB] = primaries;
 
-  // Update button labels with real names
+  // Update primary user name labels in Work Location section
   document.getElementById('modal-name-a').textContent = userA?.name || 'Person A';
   document.getElementById('modal-name-b').textContent = userB?.name || 'Person B';
-  document.getElementById('dropoff-btn-a').textContent = userA?.name || 'Person A';
-  document.getElementById('dropoff-btn-b').textContent = userB?.name || 'Person B';
-  document.getElementById('pickup-btn-a').textContent = userA?.name || 'Person A';
-  document.getElementById('pickup-btn-b').textContent = userB?.name || 'Person B';
 
   // Format title
   const mon = weekToMonday(state.year, state.week);
@@ -364,28 +422,35 @@ function openDayModal(col) {
   document.getElementById('modal-title').textContent =
     `${weekdayFull}, ${MONTH_NAMES[d.getUTCMonth()]} ${d.getUTCDate()}`;
 
-  // Populate draft from current data
-  const uAData = userA ? day.users.find(u => u.user_id === userA.id) : null;
-  const uBData = userB ? day.users.find(u => u.user_id === userB.id) : null;
+  // Populate work location draft from work_locations array
+  const workLocs = day.work_locations || [];
+  const uALoc = userA ? workLocs.find(u => u.user_id === userA.id) : null;
+  const uBLoc = userB ? workLocs.find(u => u.user_id === userB.id) : null;
 
-  state.draft.locA = uAData?.work_location || 'home';
-  state.draft.locB = uBData?.work_location || 'home';
+  state.draft.locA = uALoc?.work_location || 'home';
+  state.draft.locB = uBLoc?.work_location || 'home';
   setToggleActive('loc-toggle-a', state.draft.locA);
   setToggleActive('loc-toggle-b', state.draft.locB);
 
-  // Determine who has dropoff/pickup assigned
-  const dropoffUser = day.users.find(u => u.dropoff_assigned);
-  const pickupUser = day.users.find(u => u.pickup_assigned);
+  // New API: dropoff / pickup are single objects {user_id, name, time} or null
+  const dropoff = day.dropoff || null;
+  const pickup = day.pickup || null;
 
-  state.draft.dropoffUserId = dropoffUser?.user_id ?? null;
-  state.draft.dropoffTime = dropoffUser?.dropoff_time || uAData?.dropoff_time || '08:00';
-  state.draft.pickupUserId = pickupUser?.user_id ?? null;
-  state.draft.pickupTime = pickupUser?.pickup_time || uAData?.pickup_time || '15:00';
+  state.draft.dropoffUserId = dropoff?.user_id ?? null;
+  state.draft.dropoffTime = dropoff?.time || '08:00';
+  state.draft.pickupUserId = pickup?.user_id ?? null;
+  state.draft.pickupTime = pickup?.time || '15:00';
 
-  setAssignActive('dropoff-assign', state.draft.dropoffUserId);
-  setAssignActive('pickup-assign', state.draft.pickupUserId);
-  document.getElementById('dropoff-time').value = state.draft.dropoffTime || '08:00';
-  document.getElementById('pickup-time').value = state.draft.pickupTime || '15:00';
+  // Build dynamic assign buttons
+  buildAssignButtons('dropoff-assign', state.draft.dropoffUserId, uid => {
+    state.draft.dropoffUserId = uid;
+  });
+  buildAssignButtons('pickup-assign', state.draft.pickupUserId, uid => {
+    state.draft.pickupUserId = uid;
+  });
+
+  document.getElementById('dropoff-time').value = state.draft.dropoffTime;
+  document.getElementById('pickup-time').value = state.draft.pickupTime;
 
   document.getElementById('day-modal').classList.remove('hidden');
   document.body.style.overflow = 'hidden';
@@ -402,34 +467,30 @@ async function saveDayModal() {
   saveBtn.textContent = 'Saving…';
 
   const date = state.modalDate;
-  const [userA, userB] = state.users;
+  const primaries = primaryUsers();
+  const [userA, userB] = primaries;
   const { draft } = state;
 
   try {
-    // Save user A
+    // Save WFH for primary users
     if (userA) {
-      const dropoffA = draft.dropoffUserId === userA.id;
-      const pickupA = draft.pickupUserId === userA.id;
       await apiPut(`/api/days/${date}/user/${userA.id}`, {
         work_location: draft.locA || 'home',
-        dropoff_assigned: dropoffA,
-        dropoff_time: dropoffA ? (draft.dropoffTime || '08:00') : null,
-        pickup_assigned: pickupA,
-        pickup_time: pickupA ? (draft.pickupTime || '15:00') : null,
       });
     }
-    // Save user B
     if (userB) {
-      const dropoffB = draft.dropoffUserId === userB.id;
-      const pickupB = draft.pickupUserId === userB.id;
       await apiPut(`/api/days/${date}/user/${userB.id}`, {
         work_location: draft.locB || 'home',
-        dropoff_assigned: dropoffB,
-        dropoff_time: dropoffB ? (draft.dropoffTime || '08:00') : null,
-        pickup_assigned: pickupB,
-        pickup_time: pickupB ? (draft.pickupTime || '15:00') : null,
       });
     }
+
+    // Save drop-off / pick-up via new assignments endpoint
+    await apiPut(`/api/assignments/${date}`, {
+      dropoff_user_id: draft.dropoffUserId ?? null,
+      dropoff_time: draft.dropoffUserId ? (draft.dropoffTime || '08:00') : null,
+      pickup_user_id: draft.pickupUserId ?? null,
+      pickup_time: draft.pickupUserId ? (draft.pickupTime || '15:00') : null,
+    });
 
     showToast('Saved ✓');
     closeModal();
@@ -444,9 +505,13 @@ async function saveDayModal() {
 
 // ── Settings modal ────────────────────────────────────────────────────────────
 function openSettings() {
-  const [userA, userB] = state.users;
+  const primaries = primaryUsers();
+  const [userA, userB] = primaries;
   document.getElementById('name-input-a').value = userA?.name || '';
   document.getElementById('name-input-b').value = userB?.name || '';
+
+  renderOccasionalList();
+
   document.getElementById('settings-modal').classList.remove('hidden');
   document.body.style.overflow = 'hidden';
 }
@@ -456,6 +521,61 @@ function closeSettings() {
   document.body.style.overflow = '';
 }
 
+function renderOccasionalList() {
+  const list = document.getElementById('occasional-list');
+  list.innerHTML = '';
+  const occs = occasionalUsers();
+  if (occs.length === 0) {
+    const empty = document.createElement('p');
+    empty.className = 'occ-empty';
+    empty.textContent = 'No occasional people yet.';
+    list.appendChild(empty);
+    return;
+  }
+  occs.forEach(u => {
+    const row = document.createElement('div');
+    row.className = 'occ-row';
+    row.innerHTML = `
+      <span class="occ-name">${escapeHtml(u.name)}</span>
+      <button class="occ-delete icon-btn" aria-label="Remove ${escapeHtml(u.name)}" data-userid="${u.id}">×</button>
+    `;
+    row.querySelector('.occ-delete').addEventListener('click', () => deleteOccasional(u.id));
+    list.appendChild(row);
+  });
+}
+
+async function deleteOccasional(userId) {
+  try {
+    await apiDelete(`/api/users/${userId}`);
+    state.users = state.users.filter(u => u.id !== userId);
+    renderOccasionalList();
+    showToast('Removed ✓');
+  } catch (e) {
+    showToast(e.message, true);
+  }
+}
+
+async function addOccasional() {
+  const input = document.getElementById('occ-name-input');
+  const name = input.value.trim();
+  if (!name) return;
+
+  const btn = document.getElementById('occ-add-btn');
+  btn.disabled = true;
+
+  try {
+    const newUser = await apiPost('/api/users', { name, type: 'occasional' });
+    state.users.push(newUser);
+    input.value = '';
+    renderOccasionalList();
+    showToast(`${name} added ✓`);
+  } catch (e) {
+    showToast(e.message, true);
+  } finally {
+    btn.disabled = false;
+  }
+}
+
 async function saveSettings() {
   const btn = document.getElementById('settings-save');
   btn.disabled = true;
@@ -463,16 +583,19 @@ async function saveSettings() {
 
   const nameA = document.getElementById('name-input-a').value.trim();
   const nameB = document.getElementById('name-input-b').value.trim();
-  const [userA, userB] = state.users;
+  const primaries = primaryUsers();
+  const [userA, userB] = primaries;
 
   try {
     if (userA && nameA && nameA !== userA.name) {
       const updated = await apiPut(`/api/users/${userA.id}`, { name: nameA });
-      state.users[0] = updated;
+      const idx = state.users.findIndex(u => u.id === userA.id);
+      if (idx !== -1) state.users[idx] = updated;
     }
     if (userB && nameB && nameB !== userB.name) {
       const updated = await apiPut(`/api/users/${userB.id}`, { name: nameB });
-      state.users[1] = updated;
+      const idx = state.users.findIndex(u => u.id === userB.id);
+      if (idx !== -1) state.users[idx] = updated;
     }
     renderIdentityBar();
     renderGrid();
@@ -484,6 +607,10 @@ async function saveSettings() {
     btn.disabled = false;
     btn.textContent = 'Save Names';
   }
+}
+
+function escapeHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
 // ── Boot ──────────────────────────────────────────────────────────────────────

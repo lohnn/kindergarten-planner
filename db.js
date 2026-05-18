@@ -10,7 +10,8 @@ const db = new Database(path.join(dataDir, 'schedule.db'));
 db.exec(`
   CREATE TABLE IF NOT EXISTS users (
     id INTEGER PRIMARY KEY,
-    name TEXT NOT NULL
+    name TEXT NOT NULL,
+    type TEXT NOT NULL DEFAULT 'primary'
   );
 
   CREATE TABLE IF NOT EXISTS days (
@@ -18,18 +19,34 @@ db.exec(`
     date TEXT NOT NULL,
     user_id INTEGER NOT NULL,
     work_location TEXT NOT NULL DEFAULT 'home',
-    dropoff_assigned INTEGER NOT NULL DEFAULT 0,
-    dropoff_time TEXT,
-    pickup_assigned INTEGER NOT NULL DEFAULT 0,
-    pickup_time TEXT,
     UNIQUE(date, user_id),
     FOREIGN KEY(user_id) REFERENCES users(id)
   );
+
+  CREATE TABLE IF NOT EXISTS assignments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    date TEXT NOT NULL UNIQUE,
+    dropoff_user_id INTEGER,
+    dropoff_time TEXT,
+    pickup_user_id INTEGER,
+    pickup_time TEXT,
+    FOREIGN KEY(dropoff_user_id) REFERENCES users(id),
+    FOREIGN KEY(pickup_user_id) REFERENCES users(id)
+  );
 `);
 
-// Seed users if not present
-const insertUser = db.prepare('INSERT OR IGNORE INTO users (id, name) VALUES (?, ?)');
-insertUser.run(1, 'Person A');
-insertUser.run(2, 'Person B');
+// Migration: add type column to users if missing
+const userCols = db.pragma('table_info(users)').map(c => c.name);
+if (!userCols.includes('type')) {
+  db.exec(`ALTER TABLE users ADD COLUMN type TEXT NOT NULL DEFAULT 'primary'`);
+}
+
+// Migration: handle old days table that may have dropoff/pickup columns
+// (we just leave extra columns — SQLite ignores them harmlessly)
+
+// Seed primary users if not present
+const insertUser = db.prepare('INSERT OR IGNORE INTO users (id, name, type) VALUES (?, ?, ?)');
+insertUser.run(1, 'Person A', 'primary');
+insertUser.run(2, 'Person B', 'primary');
 
 module.exports = db;
