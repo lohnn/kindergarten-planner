@@ -38,6 +38,7 @@ export default function QuickLocationPopup({ theme, rect, onSelect, onClose }) {
       <span style={{ fontSize: 11, fontWeight: 600, color: theme.textMuted, marginBottom: 8, textAlign: 'center' }}>Work Location</span>
       <div onClick={() => onSelect('home')} style={btnStyle}>🏠 Home</div>
       <div onClick={() => onSelect('office')} style={{ ...btnStyle, marginTop: 6 }}>🏢 Office</div>
+      <div onClick={() => onSelect('unknown')} style={{ ...btnStyle, marginTop: 6, border: `2px dashed ${theme.textMuted}`, opacity: 0.7 }}>❓ Unknown</div>
     </div>
   );
 }

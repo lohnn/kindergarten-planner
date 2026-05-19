@@ -39,7 +39,7 @@ export default function WeekGrid({ theme, data, users, activeUserId, onDayClick,
         <div style={{ ...labelStyle, color: theme.colorAText }}>{userA?.name || 'A'}</div>
         {days.map((day, i) => {
           const loc = (day.work_locations || []).find(w => userA && w.user_id === userA.id);
-          return <LocationCell key={i} theme={theme} loc={loc} bgColor={theme.colorALight} isActiveUser={isActiveRow(userA)} onClick={(e) => onQuickLocation ? onQuickLocation(i, userA.id, e) : (onDayClick && onDayClick(i))} />;
+          return <LocationCell key={i} theme={theme} loc={loc} isActiveUser={isActiveRow(userA)} onClick={(e) => onQuickLocation ? onQuickLocation(i, userA.id, e) : (onDayClick && onDayClick(i))} />;
         })}
       </div>
 
@@ -48,7 +48,7 @@ export default function WeekGrid({ theme, data, users, activeUserId, onDayClick,
         <div style={{ ...labelStyle, color: theme.colorBText }}>{userB?.name || 'B'}</div>
         {days.map((day, i) => {
           const loc = (day.work_locations || []).find(w => userB && w.user_id === userB.id);
-          return <LocationCell key={i} theme={theme} loc={loc} bgColor={theme.colorBLight} isActiveUser={isActiveRow(userB)} onClick={(e) => onQuickLocation ? onQuickLocation(i, userB.id, e) : (onDayClick && onDayClick(i))} />;
+          return <LocationCell key={i} theme={theme} loc={loc} isActiveUser={isActiveRow(userB)} onClick={(e) => onQuickLocation ? onQuickLocation(i, userB.id, e) : (onDayClick && onDayClick(i))} />;
         })}
       </div>
 
@@ -73,22 +73,38 @@ export default function WeekGrid({ theme, data, users, activeUserId, onDayClick,
   );
 }
 
-function LocationCell({ theme, loc, bgColor, isActiveUser, onClick }) {
-  const hasValue = loc && loc.work_location;
+function LocationCell({ theme, loc, isActiveUser, onClick }) {
   const location = loc?.work_location || null;
-  const icon = location === 'office' ? '🏢' : location === 'home' ? '🏠' : '—';
-  const label = location === 'office' ? 'Office' : location === 'home' ? 'WFH' : 'Unset';
+  const isHome = location === 'home';
+  const isOffice = location === 'office';
+  const isUnknown = !location || location === 'unknown';
 
-  const borderStyle = !hasValue
-    ? `2px dashed ${theme.textMuted}`
-    : isActiveUser
-      ? `2px solid ${theme.colorA}`
-      : `1px solid ${theme.border}`;
+  const icon = isOffice ? '🏢' : isHome ? '🏠' : '?';
+  const label = isOffice ? 'Office' : isHome ? 'WFH' : 'Unknown';
+  const accentColor = isHome ? theme.locHome : isOffice ? theme.locOffice : theme.locUnknown;
+
+  const cellStyle = {
+    display: 'flex',
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '8px 2px',
+    background: isUnknown ? 'transparent' : theme.surface,
+    border: isUnknown ? `2px dashed ${theme.locUnknown}` : `1px solid ${theme.border}`,
+    borderLeft: isUnknown ? `2px dashed ${theme.locUnknown}` : `4px solid ${accentColor}`,
+    margin: 1,
+    borderRadius: 4,
+    cursor: onClick ? 'pointer' : 'default',
+    opacity: isUnknown ? 0.6 : 1,
+  };
 
   return (
-    <div onClick={onClick} style={{ display: 'flex', flex: 1, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '8px 2px', background: hasValue ? bgColor : 'transparent', border: borderStyle, margin: 1, borderRadius: 4, cursor: onClick ? 'pointer' : 'default', opacity: hasValue ? 1 : 0.6 }}>
-      <span style={{ fontSize: 16 }}>{icon}</span>
-      <span style={{ fontSize: 8, fontWeight: 600, color: theme.textMuted, marginTop: 2 }}>{label}</span>
+    <div onClick={onClick} style={cellStyle}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <span style={{ fontSize: 16 }}>{icon}</span>
+        <span style={{ fontSize: 8, fontWeight: 600, color: accentColor, marginTop: 2 }}>{label}</span>
+      </div>
     </div>
   );
 }

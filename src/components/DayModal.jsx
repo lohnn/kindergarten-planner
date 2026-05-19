@@ -7,7 +7,7 @@ export default function DayModal({ theme, day, dayIndex, users, onClose, onSaved
 
   const getLocFor = (uid) => {
     const wl = (day.work_locations || []).find(w => w.user_id === uid);
-    return wl?.work_location || 'home';
+    return wl?.work_location || 'unknown';
   };
 
   const [locations, setLocations] = useState(() => {
@@ -21,8 +21,12 @@ export default function DayModal({ theme, day, dayIndex, users, onClose, onSaved
   const [pickupTime, setPickupTime] = useState(day.pickup?.time || '15:00');
   const [saving, setSaving] = useState(false);
 
-  const toggleLoc = (uid) => {
-    setLocations(l => ({ ...l, [uid]: l[uid] === 'home' ? 'office' : 'home' }));
+  const cycleLoc = (uid) => {
+    setLocations(l => {
+      const cur = l[uid];
+      const next = cur === 'home' ? 'office' : cur === 'office' ? 'unknown' : 'home';
+      return { ...l, [uid]: next };
+    });
   };
 
   const save = async () => {
@@ -102,8 +106,8 @@ export default function DayModal({ theme, day, dayIndex, users, onClose, onSaved
         {primaries.map(u => (
           <div key={u.id} style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
             <span style={{ flex: 1, fontSize: 13, color: theme.text }}>{u.name}</span>
-            <div onClick={() => toggleLoc(u.id)} style={{ display: 'flex', alignItems: 'center', padding: '4px 10px', borderRadius: 6, background: locations[u.id] === 'home' ? theme.colorALight : theme.colorBLight, border: `1px solid ${theme.border}`, cursor: 'pointer' }}>
-              <span style={{ fontSize: 12, fontWeight: 600, color: theme.text }}>{locations[u.id] === 'home' ? '🏠 Home' : '🏢 Office'}</span>
+            <div onClick={() => cycleLoc(u.id)} style={{ display: 'flex', alignItems: 'center', padding: '4px 10px', borderRadius: 6, background: locations[u.id] === 'home' ? theme.locHomeBg : locations[u.id] === 'office' ? theme.locOfficeBg : theme.surface, border: locations[u.id] === 'unknown' ? `2px dashed ${theme.locUnknown}` : `1px solid ${theme.border}`, cursor: 'pointer' }}>
+              <span style={{ fontSize: 12, fontWeight: 600, color: locations[u.id] === 'home' ? theme.locHome : locations[u.id] === 'office' ? theme.locOffice : theme.locUnknown }}>{locations[u.id] === 'home' ? '🏠 Home' : locations[u.id] === 'office' ? '🏢 Office' : '❓ Unknown'}</span>
             </div>
           </div>
         ))}

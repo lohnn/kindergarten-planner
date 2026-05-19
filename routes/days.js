@@ -15,8 +15,8 @@ router.put('/:date/user/:userId', (req, res) => {
   if (user.type !== 'primary') return res.status(400).json({ error: 'Only primary users have WFH tracking' });
 
   const { work_location } = req.body;
-  if (!work_location || !['home', 'office'].includes(work_location)) {
-    return res.status(400).json({ error: 'work_location must be "home" or "office"' });
+  if (!work_location || !['home', 'office', 'unknown'].includes(work_location)) {
+    return res.status(400).json({ error: 'work_location must be "home", "office", or "unknown"' });
   }
 
   db.prepare('INSERT OR IGNORE INTO days (date, user_id) VALUES (?, ?)').run(date, user.id);
