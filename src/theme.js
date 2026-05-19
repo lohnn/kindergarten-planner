@@ -22,7 +22,7 @@ export const themes = {
     todayRing: '#d97706',
     todayHeaderBg: '#fffbeb',
     todayHeaderText: '#92400e',
-    todayColBg: 'rgba(217, 119, 6, 0.08)',
+    todayColBg: 'rgba(217, 119, 6, 0.15)',
   },
   dark: {
     bg: '#1f2937',
@@ -47,6 +47,6 @@ export const themes = {
     todayRing: '#f59e0b',
     todayHeaderBg: '#2d2410',
     todayHeaderText: '#fcd34d',
-    todayColBg: 'rgba(251, 191, 36, 0.09)',
+    todayColBg: 'rgba(251, 191, 36, 0.15)',
   },
 };
