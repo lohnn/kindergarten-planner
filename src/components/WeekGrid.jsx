@@ -97,6 +97,11 @@ function LocationCell({ theme, loc, isActiveUser, userColor, isToday, onClick })
   const icon = isOffice ? '🏢' : isHome ? '🏠' : null;
   const label = isOffice ? 'Office' : isHome ? 'WFH' : 'Unknown';
   const accentColor = isHome ? theme.locHome : isOffice ? theme.locOffice : theme.locUnknown;
+  const labelColor = isUnknown
+    ? theme.textMuted
+    : isOffice && isToday
+      ? theme.locOfficeTodayText
+      : accentColor;
 
   // Today column tint blended over the cell's natural background
   const baseBg = isUnknown ? theme.bg : theme.surface;
@@ -139,7 +144,7 @@ function LocationCell({ theme, loc, isActiveUser, userColor, isToday, onClick })
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', position: 'relative' }}>
         {icon && <span style={{ fontSize: 16 }}>{icon}</span>}
         {isUnknown && <span style={{ fontSize: 14, fontWeight: 700, color: theme.textMuted }}>?</span>}
-        <span style={{ fontSize: 8, fontWeight: 600, color: isUnknown ? theme.textMuted : accentColor, marginTop: 2 }}>{label}</span>
+        <span style={{ fontSize: 8, fontWeight: 600, color: labelColor, marginTop: 2 }}>{label}</span>
       </div>
     </div>
   );
@@ -222,7 +227,7 @@ function AssignmentCell({ theme, assignment, hasConflict, userMap, userA, userB,
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: pillColor, borderRadius: 4, padding: '2px 6px', position: 'relative' }}>
         <span style={{ fontSize: 9, fontWeight: 700, color: '#ffffff' }}>{initials}</span>
       </div>
-      {assignment.time && <span style={{ fontSize: 8, color: theme.textMuted, marginTop: 2, position: 'relative' }}>{assignment.time}</span>}
+      {assignment.time && <span style={{ fontSize: 8, color: isToday ? theme.text : theme.textMuted, marginTop: 2, position: 'relative' }}>{assignment.time}</span>}
     </div>
   );
 }
