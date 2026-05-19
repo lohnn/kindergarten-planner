@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function Header({ theme, users, activeUserId, onSelectUser, isDark, onToggleTheme }) {
+export default function Header({ theme, users, activeUserId, onSelectUser, isDark, onToggleTheme, onOpenSettings }) {
   const [userA, userB] = users;
 
   const btnStyle = (isActive, colorLight, colorBorder, colorText) => ({
@@ -24,9 +24,17 @@ export default function Header({ theme, users, activeUserId, onSelectUser, isDar
         {onToggleTheme && (
           <div
             onClick={onToggleTheme}
-            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, borderRadius: 8, cursor: 'pointer', background: theme.bg, border: `1px solid ${theme.border}`, fontSize: 16 }}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, borderRadius: 8, cursor: 'pointer', background: theme.bg, border: `1px solid ${theme.border}`, fontSize: 16, marginRight: 6 }}
           >
             {isDark ? '☀️' : '🌙'}
+          </div>
+        )}
+        {onOpenSettings && (
+          <div
+            onClick={onOpenSettings}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, borderRadius: 8, cursor: 'pointer', background: theme.bg, border: `1px solid ${theme.border}`, fontSize: 16 }}
+          >
+            ⚙️
           </div>
         )}
       </div>

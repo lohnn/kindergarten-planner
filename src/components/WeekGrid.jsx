@@ -1,14 +1,13 @@
 import React from 'react';
 import { WEEKDAY_SHORT } from '../weekHelpers.js';
 
-export default function WeekGrid({ theme, data, users }) {
+export default function WeekGrid({ theme, data, users, activeUserId, onDayClick }) {
   const days = data.days || [];
   const primaries = users.filter(u => u.type === 'primary' || !u.type);
   const [userA, userB] = primaries;
   const userMap = {};
   for (const u of users) userMap[u.id] = u;
 
-  // Row labels
   const labelStyle = {
     display: 'flex',
     alignItems: 'center',
@@ -20,13 +19,15 @@ export default function WeekGrid({ theme, data, users }) {
     fontWeight: 600,
   };
 
+  const isActiveRow = (user) => user && user.id === activeUserId;
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', padding: '0 12px 12px' }}>
       {/* Header row */}
       <div style={{ display: 'flex' }}>
         <div style={{ ...labelStyle, color: theme.textMuted }}></div>
         {days.map((day, i) => (
-          <div key={i} style={{ display: 'flex', flex: 1, flexDirection: 'column', alignItems: 'center', padding: '6px 2px', borderBottom: `1px solid ${theme.border}` }}>
+          <div key={i} onClick={() => onDayClick && onDayClick(i)} style={{ display: 'flex', flex: 1, flexDirection: 'column', alignItems: 'center', padding: '6px 2px', borderBottom: `1px solid ${theme.border}`, cursor: onDayClick ? 'pointer' : 'default' }}>
             <span style={{ fontSize: 10, fontWeight: 700, color: theme.textMuted }}>{WEEKDAY_SHORT[i]}</span>
             <span style={{ fontSize: 9, color: theme.textMuted }}>{day.date?.slice(8, 10)}</span>
           </div>
@@ -38,7 +39,7 @@ export default function WeekGrid({ theme, data, users }) {
         <div style={{ ...labelStyle, color: theme.colorAText }}>{userA?.name || 'A'}</div>
         {days.map((day, i) => {
           const loc = (day.work_locations || []).find(w => userA && w.user_id === userA.id);
-          return <LocationCell key={i} theme={theme} loc={loc} bgColor={theme.colorALight} />;
+          return <LocationCell key={i} theme={theme} loc={loc} bgColor={theme.colorALight} isActiveUser={isActiveRow(userA)} onDayClick={() => onDayClick && onDayClick(i)} />;
         })}
       </div>
 
@@ -47,7 +48,7 @@ export default function WeekGrid({ theme, data, users }) {
         <div style={{ ...labelStyle, color: theme.colorBText }}>{userB?.name || 'B'}</div>
         {days.map((day, i) => {
           const loc = (day.work_locations || []).find(w => userB && w.user_id === userB.id);
-          return <LocationCell key={i} theme={theme} loc={loc} bgColor={theme.colorBLight} />;
+          return <LocationCell key={i} theme={theme} loc={loc} bgColor={theme.colorBLight} isActiveUser={isActiveRow(userB)} onDayClick={() => onDayClick && onDayClick(i)} />;
         })}
       </div>
 
@@ -56,7 +57,7 @@ export default function WeekGrid({ theme, data, users }) {
         <div style={{ ...labelStyle, color: theme.textMuted }}>Drop-off</div>
         {days.map((day, i) => {
           const hasConflict = (day.conflicts || []).some(c => c.includes('dropoff'));
-          return <AssignmentCell key={i} theme={theme} assignment={day.dropoff} hasConflict={hasConflict} userMap={userMap} userA={userA} userB={userB} />;
+          return <AssignmentCell key={i} theme={theme} assignment={day.dropoff} hasConflict={hasConflict} userMap={userMap} userA={userA} userB={userB} onDayClick={() => onDayClick && onDayClick(i)} />;
         })}
       </div>
 
@@ -65,31 +66,46 @@ export default function WeekGrid({ theme, data, users }) {
         <div style={{ ...labelStyle, color: theme.textMuted }}>Pick-up</div>
         {days.map((day, i) => {
           const hasConflict = (day.conflicts || []).some(c => c.includes('pickup'));
-          return <AssignmentCell key={i} theme={theme} assignment={day.pickup} hasConflict={hasConflict} userMap={userMap} userA={userA} userB={userB} />;
+          return <AssignmentCell key={i} theme={theme} assignment={day.pickup} hasConflict={hasConflict} userMap={userMap} userA={userA} userB={userB} onDayClick={() => onDayClick && onDayClick(i)} />;
         })}
       </div>
     </div>
   );
 }
 
-function LocationCell({ theme, loc, bgColor }) {
-  const location = loc?.work_location || 'home';
-  const icon = location === 'office' ? '🏢' : '🏠';
-  const label = location === 'office' ? 'Office' : 'WFH';
+function LocationCell({ theme, loc, bgColor, isActiveUser, onDayClick }) {
+  const hasValue = loc && loc.work_location;
+  const location = loc?.work_location || null;
+  const icon = location === 'office' ? '🏢' : location === 'home' ? '🏠' : '—';
+  const label = location === 'office' ? 'Office' : location === 'home' ? 'WFH' : 'Unset';
+
+  const borderStyle = !hasValue
+    ? `2px dashed ${theme.textMuted}`
+    : isActiveUser
+      ? `2px solid ${theme.colorA}`
+      : `1px solid ${theme.border}`;
 
   return (
-    <div style={{ display: 'flex', flex: 1, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '8px 2px', background: bgColor, border: `1px solid ${theme.border}`, margin: 1, borderRadius: 4 }}>
+    <div onClick={onDayClick} style={{ display: 'flex', flex: 1, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '8px 2px', background: hasValue ? bgColor : 'transparent', border: borderStyle, margin: 1, borderRadius: 4, cursor: onDayClick ? 'pointer' : 'default', opacity: hasValue ? 1 : 0.6 }}>
       <span style={{ fontSize: 16 }}>{icon}</span>
       <span style={{ fontSize: 8, fontWeight: 600, color: theme.textMuted, marginTop: 2 }}>{label}</span>
     </div>
   );
 }
 
-function AssignmentCell({ theme, assignment, hasConflict, userMap, userA, userB }) {
-  if (hasConflict || !assignment) {
+function AssignmentCell({ theme, assignment, hasConflict, userMap, userA, userB, onDayClick }) {
+  if (hasConflict) {
     return (
-      <div style={{ display: 'flex', flex: 1, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '8px 2px', background: theme.conflictBg, border: `1px solid ${theme.conflict}`, margin: 1, borderRadius: 4 }}>
+      <div onClick={onDayClick} style={{ display: 'flex', flex: 1, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '8px 2px', background: theme.conflictBg, border: `2px solid ${theme.conflict}`, margin: 1, borderRadius: 4, cursor: 'pointer' }}>
         <span style={{ fontSize: 14, color: theme.conflict }}>⚠️</span>
+      </div>
+    );
+  }
+
+  if (!assignment || !assignment.user_id) {
+    return (
+      <div onClick={onDayClick} style={{ display: 'flex', flex: 1, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '8px 2px', background: 'transparent', border: `2px dashed ${theme.textMuted}`, margin: 1, borderRadius: 4, cursor: 'pointer', opacity: 0.6 }}>
+        <span style={{ fontSize: 9, color: theme.textMuted }}>Unset</span>
       </div>
     );
   }
@@ -99,7 +115,7 @@ function AssignmentCell({ theme, assignment, hasConflict, userMap, userA, userB 
   const pillColor = user?.id === userA?.id ? theme.colorA : user?.id === userB?.id ? theme.colorB : theme.colorOcc;
 
   return (
-    <div style={{ display: 'flex', flex: 1, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '6px 2px', background: theme.surface, border: `1px solid ${theme.border}`, margin: 1, borderRadius: 4 }}>
+    <div onClick={onDayClick} style={{ display: 'flex', flex: 1, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '6px 2px', background: theme.surface, border: `1px solid ${theme.border}`, margin: 1, borderRadius: 4, cursor: 'pointer' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: pillColor, borderRadius: 4, padding: '2px 6px' }}>
         <span style={{ fontSize: 9, fontWeight: 700, color: '#ffffff' }}>{initials}</span>
       </div>
