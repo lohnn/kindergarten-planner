@@ -89,7 +89,7 @@ function LocationCell({ theme, loc, isActiveUser, onClick }) {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: '8px 2px',
+    padding: '12px 2px',
     background: isUnknown ? 'transparent' : theme.surface,
     border: isUnknown ? `2px dashed ${theme.locUnknown}` : `1px solid ${theme.border}`,
     borderLeft: isUnknown ? `2px dashed ${theme.locUnknown}` : `4px solid ${accentColor}`,
@@ -153,7 +153,7 @@ function AssignmentCell({ theme, assignment, hasConflict, userMap, userA, userB,
 
   if (hasConflict) {
     return (
-      <div {...pressProps} style={{ display: 'flex', flex: 1, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '8px 2px', background: theme.conflictBg, border: `2px solid ${theme.conflict}`, margin: 1, borderRadius: 4, cursor: 'pointer' }}>
+      <div {...pressProps} style={{ display: 'flex', flex: 1, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '12px 2px', background: theme.conflictBg, border: `2px solid ${theme.conflict}`, margin: 1, borderRadius: 4, cursor: 'pointer' }}>
         <span style={{ fontSize: 14, color: theme.conflict }}>⚠️</span>
       </div>
     );
@@ -161,7 +161,7 @@ function AssignmentCell({ theme, assignment, hasConflict, userMap, userA, userB,
 
   if (!assignment || !assignment.user_id) {
     return (
-      <div {...pressProps} style={{ display: 'flex', flex: 1, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '8px 2px', background: 'transparent', border: `2px dashed ${theme.textMuted}`, margin: 1, borderRadius: 4, cursor: 'pointer', opacity: 0.6 }}>
+      <div {...pressProps} style={{ display: 'flex', flex: 1, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '12px 2px', background: 'transparent', border: `2px dashed ${theme.border}`, margin: 1, borderRadius: 4, cursor: 'pointer', opacity: 0.4 }}>
         <span style={{ fontSize: 9, color: theme.textMuted }}>Unset</span>
       </div>
     );
@@ -172,7 +172,7 @@ function AssignmentCell({ theme, assignment, hasConflict, userMap, userA, userB,
   const pillColor = user?.id === userA?.id ? theme.colorA : user?.id === userB?.id ? theme.colorB : theme.colorOcc;
 
   return (
-    <div {...pressProps} style={{ display: 'flex', flex: 1, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '6px 2px', background: theme.surface, border: `1px solid ${theme.border}`, margin: 1, borderRadius: 4, cursor: 'pointer' }}>
+    <div {...pressProps} style={{ display: 'flex', flex: 1, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '10px 2px', background: theme.surface, border: `1px solid ${theme.border}`, margin: 1, borderRadius: 4, cursor: 'pointer' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: pillColor, borderRadius: 4, padding: '2px 6px' }}>
         <span style={{ fontSize: 9, fontWeight: 700, color: '#ffffff' }}>{initials}</span>
       </div>
