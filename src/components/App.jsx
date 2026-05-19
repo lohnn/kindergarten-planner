@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { themes } from '../theme.js';
+import { useTheme, ThemeContext } from '../useTheme.js';
 import { getISOWeek, addWeeks, formatWeekLabel } from '../weekHelpers.js';
 import Header from './Header.jsx';
 import WeekNav from './WeekNav.jsx';
@@ -14,17 +15,25 @@ async function apiGet(path) {
 }
 
 export default function App({ data, theme: themeProp } = {}) {
-  const t = themes[themeProp || 'light'];
-
-  // If data is passed directly (snapshot mode), render statically
+  // If data is passed directly (snapshot mode), render statically with specified theme
   if (data) {
+    const t = themes[themeProp || 'light'];
     return <AppView data={data} theme={t} />;
   }
 
-  return <AppInteractive theme={t} />;
+  return <AppWithTheme />;
 }
 
-function AppInteractive({ theme }) {
+function AppWithTheme() {
+  const themeState = useTheme();
+  return (
+    <ThemeContext.Provider value={themeState}>
+      <AppInteractive theme={themeState.theme} isDark={themeState.isDark} toggleTheme={themeState.toggleTheme} />
+    </ThemeContext.Provider>
+  );
+}
+
+function AppInteractive({ theme, isDark, toggleTheme }) {
   const [users, setUsers] = useState([]);
   const [activeUserId, setActiveUserId] = useState(() => {
     return parseInt(localStorage.getItem('kinder_user_id') || '0', 10) || null;
@@ -64,7 +73,7 @@ function AppInteractive({ theme }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', background: theme.bg, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
-      <Header theme={theme} users={primaries} activeUserId={activeUserId} onSelectUser={selectUser} />
+      <Header theme={theme} users={primaries} activeUserId={activeUserId} onSelectUser={selectUser} isDark={isDark} onToggleTheme={toggleTheme} />
       <WeekNav theme={theme} label={formatWeekLabel(yearWeek.year, yearWeek.week)} onPrev={() => navigate(-1)} onNext={() => navigate(1)} />
       {loading && <div style={{ padding: 20, textAlign: 'center', color: theme.textMuted }}>Loading...</div>}
       {error && <div style={{ padding: 20, textAlign: 'center', color: theme.conflict }}>{error}</div>}

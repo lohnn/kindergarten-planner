@@ -1,6 +1,6 @@
 import React from 'react';
 
-export default function Header({ theme, users, activeUserId, onSelectUser }) {
+export default function Header({ theme, users, activeUserId, onSelectUser, isDark, onToggleTheme }) {
   const [userA, userB] = users;
 
   const btnStyle = (isActive, colorLight, colorBorder, colorText) => ({
@@ -20,7 +20,15 @@ export default function Header({ theme, users, activeUserId, onSelectUser }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', padding: '12px 12px 8px', background: theme.surface, borderBottom: `1px solid ${theme.border}` }}>
       <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
-        <span style={{ fontSize: 16, fontWeight: 700, color: theme.text }}>🎒 Kinder Planner</span>
+        <span style={{ fontSize: 16, fontWeight: 700, color: theme.text, flex: 1 }}>🎒 Kinder Planner</span>
+        {onToggleTheme && (
+          <div
+            onClick={onToggleTheme}
+            style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, borderRadius: 8, cursor: 'pointer', background: theme.bg, border: `1px solid ${theme.border}`, fontSize: 16 }}
+          >
+            {isDark ? '☀️' : '🌙'}
+          </div>
+        )}
       </div>
       <div style={{ display: 'flex', alignItems: 'center' }}>
         <span style={{ fontSize: 12, color: theme.textMuted, marginRight: 8 }}>I am:</span>
