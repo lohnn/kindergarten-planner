@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useRef, useCallback } from 'react';
 import { WEEKDAY_SHORT } from '../weekHelpers.js';
 
-export default function WeekGrid({ theme, data, users, activeUserId, onDayClick, onQuickAssign }) {
+export default function WeekGrid({ theme, data, users, activeUserId, onDayClick, onQuickAssign, onQuickLocation, onTimeEdit }) {
   const days = data.days || [];
   const primaries = users.filter(u => u.type === 'primary' || !u.type);
   const [userA, userB] = primaries;
@@ -39,7 +39,7 @@ export default function WeekGrid({ theme, data, users, activeUserId, onDayClick,
         <div style={{ ...labelStyle, color: theme.colorAText }}>{userA?.name || 'A'}</div>
         {days.map((day, i) => {
           const loc = (day.work_locations || []).find(w => userA && w.user_id === userA.id);
-          return <LocationCell key={i} theme={theme} loc={loc} bgColor={theme.colorALight} isActiveUser={isActiveRow(userA)} onDayClick={() => onDayClick && onDayClick(i)} />;
+          return <LocationCell key={i} theme={theme} loc={loc} bgColor={theme.colorALight} isActiveUser={isActiveRow(userA)} onClick={(e) => onQuickLocation ? onQuickLocation(i, userA.id, e) : (onDayClick && onDayClick(i))} />;
         })}
       </div>
 
@@ -48,7 +48,7 @@ export default function WeekGrid({ theme, data, users, activeUserId, onDayClick,
         <div style={{ ...labelStyle, color: theme.colorBText }}>{userB?.name || 'B'}</div>
         {days.map((day, i) => {
           const loc = (day.work_locations || []).find(w => userB && w.user_id === userB.id);
-          return <LocationCell key={i} theme={theme} loc={loc} bgColor={theme.colorBLight} isActiveUser={isActiveRow(userB)} onDayClick={() => onDayClick && onDayClick(i)} />;
+          return <LocationCell key={i} theme={theme} loc={loc} bgColor={theme.colorBLight} isActiveUser={isActiveRow(userB)} onClick={(e) => onQuickLocation ? onQuickLocation(i, userB.id, e) : (onDayClick && onDayClick(i))} />;
         })}
       </div>
 
@@ -57,7 +57,7 @@ export default function WeekGrid({ theme, data, users, activeUserId, onDayClick,
         <div style={{ ...labelStyle, color: theme.textMuted }}>Drop-off</div>
         {days.map((day, i) => {
           const hasConflict = (day.conflicts || []).some(c => c.includes('dropoff'));
-          return <AssignmentCell key={i} theme={theme} assignment={day.dropoff} hasConflict={hasConflict} userMap={userMap} userA={userA} userB={userB} onClick={(e) => onQuickAssign ? onQuickAssign(i, 'dropoff', e) : (onDayClick && onDayClick(i))} />;
+          return <AssignmentCell key={i} theme={theme} assignment={day.dropoff} hasConflict={hasConflict} userMap={userMap} userA={userA} userB={userB} onClick={(e) => onQuickAssign ? onQuickAssign(i, 'dropoff', e) : (onDayClick && onDayClick(i))} onLongPress={(e) => onTimeEdit && onTimeEdit(i, 'dropoff', e)} />;
         })}
       </div>
 
@@ -66,14 +66,14 @@ export default function WeekGrid({ theme, data, users, activeUserId, onDayClick,
         <div style={{ ...labelStyle, color: theme.textMuted }}>Pick-up</div>
         {days.map((day, i) => {
           const hasConflict = (day.conflicts || []).some(c => c.includes('pickup'));
-          return <AssignmentCell key={i} theme={theme} assignment={day.pickup} hasConflict={hasConflict} userMap={userMap} userA={userA} userB={userB} onClick={(e) => onQuickAssign ? onQuickAssign(i, 'pickup', e) : (onDayClick && onDayClick(i))} />;
+          return <AssignmentCell key={i} theme={theme} assignment={day.pickup} hasConflict={hasConflict} userMap={userMap} userA={userA} userB={userB} onClick={(e) => onQuickAssign ? onQuickAssign(i, 'pickup', e) : (onDayClick && onDayClick(i))} onLongPress={(e) => onTimeEdit && onTimeEdit(i, 'pickup', e)} />;
         })}
       </div>
     </div>
   );
 }
 
-function LocationCell({ theme, loc, bgColor, isActiveUser, onDayClick }) {
+function LocationCell({ theme, loc, bgColor, isActiveUser, onClick }) {
   const hasValue = loc && loc.work_location;
   const location = loc?.work_location || null;
   const icon = location === 'office' ? '🏢' : location === 'home' ? '🏠' : '—';
@@ -86,17 +86,58 @@ function LocationCell({ theme, loc, bgColor, isActiveUser, onDayClick }) {
       : `1px solid ${theme.border}`;
 
   return (
-    <div onClick={onDayClick} style={{ display: 'flex', flex: 1, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '8px 2px', background: hasValue ? bgColor : 'transparent', border: borderStyle, margin: 1, borderRadius: 4, cursor: onDayClick ? 'pointer' : 'default', opacity: hasValue ? 1 : 0.6 }}>
+    <div onClick={onClick} style={{ display: 'flex', flex: 1, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '8px 2px', background: hasValue ? bgColor : 'transparent', border: borderStyle, margin: 1, borderRadius: 4, cursor: onClick ? 'pointer' : 'default', opacity: hasValue ? 1 : 0.6 }}>
       <span style={{ fontSize: 16 }}>{icon}</span>
       <span style={{ fontSize: 8, fontWeight: 600, color: theme.textMuted, marginTop: 2 }}>{label}</span>
     </div>
   );
 }
 
-function AssignmentCell({ theme, assignment, hasConflict, userMap, userA, userB, onClick }) {
+function AssignmentCell({ theme, assignment, hasConflict, userMap, userA, userB, onClick, onLongPress }) {
+  const timerRef = useRef(null);
+  const longPressedRef = useRef(false);
+
+  const startPress = (e) => {
+    longPressedRef.current = false;
+    timerRef.current = setTimeout(() => {
+      longPressedRef.current = true;
+      if (onLongPress) onLongPress(e);
+    }, 500);
+  };
+
+  const endPress = (e) => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+  };
+
+  const handleClick = (e) => {
+    if (longPressedRef.current) {
+      longPressedRef.current = false;
+      return;
+    }
+    if (onClick) onClick(e);
+  };
+
+  const handleContextMenu = (e) => {
+    e.preventDefault();
+  };
+
+  const pressProps = {
+    onMouseDown: startPress,
+    onMouseUp: endPress,
+    onMouseLeave: endPress,
+    onTouchStart: startPress,
+    onTouchEnd: endPress,
+    onTouchMove: endPress,
+    onClick: handleClick,
+    onContextMenu: handleContextMenu,
+  };
+
   if (hasConflict) {
     return (
-      <div onClick={onClick} style={{ display: 'flex', flex: 1, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '8px 2px', background: theme.conflictBg, border: `2px solid ${theme.conflict}`, margin: 1, borderRadius: 4, cursor: 'pointer' }}>
+      <div {...pressProps} style={{ display: 'flex', flex: 1, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '8px 2px', background: theme.conflictBg, border: `2px solid ${theme.conflict}`, margin: 1, borderRadius: 4, cursor: 'pointer' }}>
         <span style={{ fontSize: 14, color: theme.conflict }}>⚠️</span>
       </div>
     );
@@ -104,7 +145,7 @@ function AssignmentCell({ theme, assignment, hasConflict, userMap, userA, userB,
 
   if (!assignment || !assignment.user_id) {
     return (
-      <div onClick={onClick} style={{ display: 'flex', flex: 1, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '8px 2px', background: 'transparent', border: `2px dashed ${theme.textMuted}`, margin: 1, borderRadius: 4, cursor: 'pointer', opacity: 0.6 }}>
+      <div {...pressProps} style={{ display: 'flex', flex: 1, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '8px 2px', background: 'transparent', border: `2px dashed ${theme.textMuted}`, margin: 1, borderRadius: 4, cursor: 'pointer', opacity: 0.6 }}>
         <span style={{ fontSize: 9, color: theme.textMuted }}>Unset</span>
       </div>
     );
@@ -115,7 +156,7 @@ function AssignmentCell({ theme, assignment, hasConflict, userMap, userA, userB,
   const pillColor = user?.id === userA?.id ? theme.colorA : user?.id === userB?.id ? theme.colorB : theme.colorOcc;
 
   return (
-    <div onClick={onClick} style={{ display: 'flex', flex: 1, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '6px 2px', background: theme.surface, border: `1px solid ${theme.border}`, margin: 1, borderRadius: 4, cursor: 'pointer' }}>
+    <div {...pressProps} style={{ display: 'flex', flex: 1, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '6px 2px', background: theme.surface, border: `1px solid ${theme.border}`, margin: 1, borderRadius: 4, cursor: 'pointer' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: pillColor, borderRadius: 4, padding: '2px 6px' }}>
         <span style={{ fontSize: 9, fontWeight: 700, color: '#ffffff' }}>{initials}</span>
       </div>

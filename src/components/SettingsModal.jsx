@@ -9,6 +9,8 @@ export default function SettingsModal({ theme, users, onClose, onSaved }) {
     return m;
   });
   const [newName, setNewName] = useState('');
+  const [defaultDropoff, setDefaultDropoff] = useState(localStorage.getItem('kinder_default_dropoff') || '08:00');
+  const [defaultPickup, setDefaultPickup] = useState(localStorage.getItem('kinder_default_pickup') || '15:00');
   const [saving, setSaving] = useState(false);
 
   const updateName = (id, val) => setNames(n => ({ ...n, [id]: val }));
@@ -21,6 +23,8 @@ export default function SettingsModal({ theme, users, onClose, onSaved }) {
           await fetch(`/api/users/${u.id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: names[u.id] }) });
         }
       }
+      localStorage.setItem('kinder_default_dropoff', defaultDropoff);
+      localStorage.setItem('kinder_default_pickup', defaultPickup);
       onSaved();
     } catch (e) {
       alert(e.message);
@@ -80,6 +84,16 @@ export default function SettingsModal({ theme, users, onClose, onSaved }) {
         <div style={{ display: 'flex', marginBottom: 16 }}>
           <input style={{ ...inputStyle, flex: 1 }} placeholder="New name" value={newName} onChange={e => setNewName(e.target.value)} onKeyDown={e => e.key === 'Enter' && addOccasional()} />
           <div onClick={addOccasional} style={{ ...btnStyle, marginLeft: 6, padding: '6px 10px', fontSize: 16 }}>+</div>
+        </div>
+
+        <span style={{ fontSize: 12, fontWeight: 600, color: theme.textMuted, marginBottom: 6, marginTop: 12 }}>Default Times</span>
+        <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
+          <span style={{ flex: 1, fontSize: 13, color: theme.text }}>Drop-off</span>
+          <input type="time" style={{ padding: '6px 8px', borderRadius: 6, border: `1px solid ${theme.border}`, background: theme.bg, color: theme.text, fontSize: 13 }} value={defaultDropoff} onChange={e => setDefaultDropoff(e.target.value)} />
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', marginBottom: 16 }}>
+          <span style={{ flex: 1, fontSize: 13, color: theme.text }}>Pick-up</span>
+          <input type="time" style={{ padding: '6px 8px', borderRadius: 6, border: `1px solid ${theme.border}`, background: theme.bg, color: theme.text, fontSize: 13 }} value={defaultPickup} onChange={e => setDefaultPickup(e.target.value)} />
         </div>
 
         <div onClick={save} style={{ ...btnStyle, opacity: saving ? 0.6 : 1 }}>

@@ -8,6 +8,8 @@ import WeekGrid from './WeekGrid.jsx';
 import SettingsModal from './SettingsModal.jsx';
 import DayModal from './DayModal.jsx';
 import QuickAssignPopup from './QuickAssignPopup.jsx';
+import QuickLocationPopup from './QuickLocationPopup.jsx';
+import TimeEditorPopup from './TimeEditorPopup.jsx';
 
 const API_BASE = typeof window !== 'undefined' ? '' : 'http://localhost:3000';
 
@@ -50,6 +52,8 @@ function AppInteractive({ theme, isDark, toggleTheme }) {
   const [selectedDay, setSelectedDay] = useState(null);
   const [toast, setToast] = useState(null);
   const [quickAssign, setQuickAssign] = useState(null);
+  const [quickLocation, setQuickLocation] = useState(null);
+  const [timeEditor, setTimeEditor] = useState(null);
 
   const showToast = (msg) => {
     setToast(msg);
@@ -90,17 +94,70 @@ function AppInteractive({ theme, isDark, toggleTheme }) {
   const saveQuickAssign = async (userId) => {
     if (!quickAssign || !weekData) return;
     const day = weekData.days[quickAssign.dayIndex];
+    const defaultDropoff = localStorage.getItem('kinder_default_dropoff') || '08:00';
+    const defaultPickup = localStorage.getItem('kinder_default_pickup') || '15:00';
+
+    const currentField = quickAssign.field === 'dropoff' ? day.dropoff : day.pickup;
+    const isFromNobody = !currentField?.user_id;
+
     const body = quickAssign.field === 'dropoff'
-      ? { dropoff_user_id: userId, dropoff_time: day.dropoff?.time || '08:00', pickup_user_id: day.pickup?.user_id || null, pickup_time: day.pickup?.time || '15:00' }
-      : { dropoff_user_id: day.dropoff?.user_id || null, dropoff_time: day.dropoff?.time || '08:00', pickup_user_id: userId, pickup_time: day.pickup?.time || '15:00' };
+      ? {
+          dropoff_user_id: userId,
+          dropoff_time: (isFromNobody && userId) ? defaultDropoff : (day.dropoff?.time || defaultDropoff),
+          pickup_user_id: day.pickup?.user_id || null,
+          pickup_time: day.pickup?.time || defaultPickup
+        }
+      : {
+          dropoff_user_id: day.dropoff?.user_id || null,
+          dropoff_time: day.dropoff?.time || defaultDropoff,
+          pickup_user_id: userId,
+          pickup_time: (isFromNobody && userId) ? defaultPickup : (day.pickup?.time || defaultPickup)
+        };
     await fetch(`/api/assignments/${day.date}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     setQuickAssign(null);
     fetchWeek();
     showToast(`${quickAssign.field === 'dropoff' ? 'Drop-off' : 'Pick-up'} updated`);
   };
 
+  const handleQuickLocation = (dayIndex, userId, event) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    setQuickLocation({ dayIndex, userId, rect });
+  };
+
+  const saveQuickLocation = async (location) => {
+    if (!quickLocation || !weekData) return;
+    const day = weekData.days[quickLocation.dayIndex];
+    await fetch(`/api/days/${day.date}/user/${quickLocation.userId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ work_location: location })
+    });
+    setQuickLocation(null);
+    fetchWeek();
+    showToast('Location updated');
+  };
+
+  const handleTimeEdit = (dayIndex, field, event) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    setTimeEditor({ dayIndex, field, rect });
+  };
+
+  const saveTimeEdit = async (time) => {
+    if (!timeEditor || !weekData) return;
+    const day = weekData.days[timeEditor.dayIndex];
+    const body = timeEditor.field === 'dropoff'
+      ? { dropoff_user_id: day.dropoff?.user_id || null, dropoff_time: time, pickup_user_id: day.pickup?.user_id || null, pickup_time: day.pickup?.time || '15:00' }
+      : { dropoff_user_id: day.dropoff?.user_id || null, dropoff_time: day.dropoff?.time || '08:00', pickup_user_id: day.pickup?.user_id || null, pickup_time: time };
+    await fetch(`/api/assignments/${day.date}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    setTimeEditor(null);
+    fetchWeek();
+    showToast('Time updated');
+  };
+
   const handleDayClick = (i) => {
     setQuickAssign(null);
+    setQuickLocation(null);
+    setTimeEditor(null);
     setSelectedDay(i);
   };
 
@@ -112,8 +169,18 @@ function AppInteractive({ theme, isDark, toggleTheme }) {
       <WeekNav theme={theme} label={formatWeekLabel(yearWeek.year, yearWeek.week)} onPrev={() => navigate(-1)} onNext={() => navigate(1)} />
       {loading && <div style={{ padding: 20, textAlign: 'center', color: theme.textMuted }}>Loading...</div>}
       {error && <div style={{ padding: 20, textAlign: 'center', color: theme.conflict }}>{error}</div>}
-      {weekData && !loading && <WeekGrid theme={theme} data={weekData} users={users} activeUserId={activeUserId} onDayClick={handleDayClick} onQuickAssign={handleQuickAssign} />}
+      {weekData && !loading && <WeekGrid theme={theme} data={weekData} users={users} activeUserId={activeUserId} onDayClick={handleDayClick} onQuickAssign={handleQuickAssign} onQuickLocation={handleQuickLocation} onTimeEdit={handleTimeEdit} />}
       {quickAssign && <QuickAssignPopup theme={theme} users={users} field={quickAssign.field} rect={quickAssign.rect} onSelect={saveQuickAssign} onClose={() => setQuickAssign(null)} />}
+      {quickLocation && <QuickLocationPopup theme={theme} rect={quickLocation.rect} onSelect={saveQuickLocation} onClose={() => setQuickLocation(null)} />}
+      {timeEditor && weekData && (
+        <TimeEditorPopup
+          theme={theme}
+          rect={timeEditor.rect}
+          currentTime={timeEditor.field === 'dropoff' ? (weekData.days[timeEditor.dayIndex]?.dropoff?.time || '08:00') : (weekData.days[timeEditor.dayIndex]?.pickup?.time || '15:00')}
+          onSave={saveTimeEdit}
+          onClose={() => setTimeEditor(null)}
+        />
+      )}
       {toast && (
         <div style={{ position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', background: theme.text, color: theme.bg, padding: '8px 16px', borderRadius: 8, fontSize: 13, fontWeight: 600, zIndex: 1000 }}>
           {toast}
