@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { smartPosition } from '../useSmartPosition.js';
 
 export default function QuickLocationPopup({ theme, rect, onSelect, onClose }) {
   const ref = useRef(null);
@@ -15,11 +16,10 @@ export default function QuickLocationPopup({ theme, rect, onSelect, onClose }) {
     return () => document.removeEventListener('mousedown', handler);
   }, [onClose]);
 
-  const top = rect.bottom + 4;
-  const left = rect.left + rect.width / 2;
+  const pos = smartPosition(rect, { width: 140, height: 170 });
 
   const popupStyle = {
-    position: 'fixed', top, left, transform: 'translateX(-50%)',
+    position: 'fixed', top: pos.top, left: pos.left, transform: pos.transform,
     display: 'flex', flexDirection: 'column',
     background: theme.surface, borderRadius: 12, padding: 12,
     boxShadow: '0 4px 20px rgba(0,0,0,0.25)', zIndex: 950, minWidth: 120,

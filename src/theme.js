@@ -19,6 +19,9 @@ export const themes = {
     locUnknown: '#9ca3af',
     conflict: '#ef4444',
     conflictBg: '#fee2e2',
+    todayRing: '#d97706',
+    todayHeaderBg: '#fffbeb',
+    todayHeaderText: '#92400e',
   },
   dark: {
     bg: '#1f2937',
@@ -40,5 +43,8 @@ export const themes = {
     locUnknown: '#6b7280',
     conflict: '#f87171',
     conflictBg: '#450a0a',
+    todayRing: '#f59e0b',
+    todayHeaderBg: '#2d2410',
+    todayHeaderText: '#fcd34d',
   },
 };

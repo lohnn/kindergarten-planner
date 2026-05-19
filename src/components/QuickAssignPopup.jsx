@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { smartPosition } from '../useSmartPosition.js';
 
 export default function QuickAssignPopup({ theme, users, field, rect, onSelect, onClose }) {
   const ref = useRef(null);
@@ -22,14 +23,14 @@ export default function QuickAssignPopup({ theme, users, field, rect, onSelect, 
   const allAssignable = [{ id: null, name: 'Nobody', type: 'none' }, ...users];
   const label = field === 'dropoff' ? 'Drop-off' : 'Pick-up';
 
-  const top = rect.bottom + 4;
-  const left = rect.left + rect.width / 2;
+  const itemCount = users.length + 1; // +1 for Nobody
+  const pos = smartPosition(rect, { width: 160, height: 52 + itemCount * 44 });
 
   const popupStyle = {
     position: 'fixed',
-    top,
-    left,
-    transform: 'translateX(-50%)',
+    top: pos.top,
+    left: pos.left,
+    transform: pos.transform,
     display: 'flex',
     flexDirection: 'column',
     background: theme.surface,

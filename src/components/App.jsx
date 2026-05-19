@@ -80,6 +80,20 @@ function AppInteractive({ theme, isDark, toggleTheme }) {
     setYearWeek({ year, week });
   };
 
+  const goToCurrentWeek = () => {
+    const { year, week } = getISOWeek(new Date());
+    setYearWeek({ year, week });
+  };
+
+  // Compute today's index within the current viewed week (0=Mon … 4=Fri), or null
+  const currentWeekInfo = getISOWeek(new Date());
+  const isCurrentWeek = currentWeekInfo.year === yearWeek.year && currentWeekInfo.week === yearWeek.week;
+  let todayIndex = null;
+  if (isCurrentWeek) {
+    const dow = new Date().getDay(); // 0=Sun,1=Mon,...,5=Fri,6=Sat
+    if (dow >= 1 && dow <= 5) todayIndex = dow - 1;
+  }
+
   const selectUser = (id) => {
     setActiveUserId(id);
     if (id) localStorage.setItem('kinder_user_id', String(id));
@@ -166,10 +180,10 @@ function AppInteractive({ theme, isDark, toggleTheme }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100dvh', background: theme.bg, fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
       <Header theme={theme} users={primaries} activeUserId={activeUserId} onSelectUser={selectUser} isDark={isDark} onToggleTheme={toggleTheme} onOpenSettings={() => setShowSettings(true)} />
-      <WeekNav theme={theme} label={formatWeekLabel(yearWeek.year, yearWeek.week)} onPrev={() => navigate(-1)} onNext={() => navigate(1)} />
+      <WeekNav theme={theme} label={formatWeekLabel(yearWeek.year, yearWeek.week)} onPrev={() => navigate(-1)} onNext={() => navigate(1)} isCurrentWeek={isCurrentWeek} onGoToToday={goToCurrentWeek} />
       {loading && <div style={{ padding: 20, textAlign: 'center', color: theme.textMuted }}>Loading...</div>}
       {error && <div style={{ padding: 20, textAlign: 'center', color: theme.conflict }}>{error}</div>}
-      {weekData && !loading && <WeekGrid theme={theme} data={weekData} users={users} activeUserId={activeUserId} onDayClick={handleDayClick} onQuickAssign={handleQuickAssign} onQuickLocation={handleQuickLocation} onTimeEdit={handleTimeEdit} />}
+      {weekData && !loading && <WeekGrid theme={theme} data={weekData} users={users} activeUserId={activeUserId} todayIndex={todayIndex} onDayClick={handleDayClick} onQuickAssign={handleQuickAssign} onQuickLocation={handleQuickLocation} onTimeEdit={handleTimeEdit} />}
       {quickAssign && <QuickAssignPopup theme={theme} users={users} field={quickAssign.field} rect={quickAssign.rect} onSelect={saveQuickAssign} onClose={() => setQuickAssign(null)} />}
       {quickLocation && <QuickLocationPopup theme={theme} rect={quickLocation.rect} onSelect={saveQuickLocation} onClose={() => setQuickLocation(null)} />}
       {timeEditor && weekData && (

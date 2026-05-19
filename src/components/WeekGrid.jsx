@@ -1,7 +1,7 @@
 import React, { useRef, useCallback } from 'react';
 import { WEEKDAY_SHORT } from '../weekHelpers.js';
 
-export default function WeekGrid({ theme, data, users, activeUserId, onDayClick, onQuickAssign, onQuickLocation, onTimeEdit }) {
+export default function WeekGrid({ theme, data, users, activeUserId, todayIndex, onDayClick, onQuickAssign, onQuickLocation, onTimeEdit }) {
   const days = data.days || [];
   const primaries = users.filter(u => u.type === 'primary' || !u.type);
   const [userA, userB] = primaries;
@@ -26,12 +26,23 @@ export default function WeekGrid({ theme, data, users, activeUserId, onDayClick,
       {/* Header row */}
       <div style={{ display: 'flex' }}>
         <div style={{ ...labelStyle, color: theme.textMuted }}></div>
-        {days.map((day, i) => (
-          <div key={i} onClick={() => onDayClick && onDayClick(i)} style={{ display: 'flex', flex: 1, flexDirection: 'column', alignItems: 'center', padding: '6px 2px', borderBottom: `1px solid ${theme.border}`, cursor: onDayClick ? 'pointer' : 'default' }}>
-            <span style={{ fontSize: 10, fontWeight: 700, color: theme.textMuted }}>{WEEKDAY_SHORT[i]}</span>
-            <span style={{ fontSize: 9, color: theme.textMuted }}>{day.date?.slice(8, 10)}</span>
-          </div>
-        ))}
+        {days.map((day, i) => {
+          const isToday = todayIndex === i;
+          const headerStyle = {
+            display: 'flex', flex: 1, flexDirection: 'column', alignItems: 'center',
+            padding: '6px 2px',
+            borderBottom: isToday ? `2px solid ${theme.todayRing}` : `1px solid ${theme.border}`,
+            background: isToday ? theme.todayHeaderBg : 'transparent',
+            borderRadius: isToday ? '4px 4px 0 0' : 0,
+            cursor: onDayClick ? 'pointer' : 'default',
+          };
+          return (
+            <div key={i} onClick={() => onDayClick && onDayClick(i)} style={headerStyle}>
+              <span style={{ fontSize: 10, fontWeight: isToday ? 800 : 700, color: isToday ? theme.todayHeaderText : theme.textMuted }}>{WEEKDAY_SHORT[i]}</span>
+              <span style={{ fontSize: 9, color: isToday ? theme.todayHeaderText : theme.textMuted, fontWeight: isToday ? 700 : 400 }}>{day.date?.slice(8, 10)}</span>
+            </div>
+          );
+        })}
       </div>
 
       {/* User A row */}
