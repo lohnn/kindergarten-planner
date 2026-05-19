@@ -1,7 +1,7 @@
 import React from 'react';
 import { WEEKDAY_SHORT } from '../weekHelpers.js';
 
-export default function WeekGrid({ theme, data, users, activeUserId, onDayClick }) {
+export default function WeekGrid({ theme, data, users, activeUserId, onDayClick, onQuickAssign }) {
   const days = data.days || [];
   const primaries = users.filter(u => u.type === 'primary' || !u.type);
   const [userA, userB] = primaries;
@@ -57,7 +57,7 @@ export default function WeekGrid({ theme, data, users, activeUserId, onDayClick 
         <div style={{ ...labelStyle, color: theme.textMuted }}>Drop-off</div>
         {days.map((day, i) => {
           const hasConflict = (day.conflicts || []).some(c => c.includes('dropoff'));
-          return <AssignmentCell key={i} theme={theme} assignment={day.dropoff} hasConflict={hasConflict} userMap={userMap} userA={userA} userB={userB} onDayClick={() => onDayClick && onDayClick(i)} />;
+          return <AssignmentCell key={i} theme={theme} assignment={day.dropoff} hasConflict={hasConflict} userMap={userMap} userA={userA} userB={userB} onClick={(e) => onQuickAssign ? onQuickAssign(i, 'dropoff', e) : (onDayClick && onDayClick(i))} />;
         })}
       </div>
 
@@ -66,7 +66,7 @@ export default function WeekGrid({ theme, data, users, activeUserId, onDayClick 
         <div style={{ ...labelStyle, color: theme.textMuted }}>Pick-up</div>
         {days.map((day, i) => {
           const hasConflict = (day.conflicts || []).some(c => c.includes('pickup'));
-          return <AssignmentCell key={i} theme={theme} assignment={day.pickup} hasConflict={hasConflict} userMap={userMap} userA={userA} userB={userB} onDayClick={() => onDayClick && onDayClick(i)} />;
+          return <AssignmentCell key={i} theme={theme} assignment={day.pickup} hasConflict={hasConflict} userMap={userMap} userA={userA} userB={userB} onClick={(e) => onQuickAssign ? onQuickAssign(i, 'pickup', e) : (onDayClick && onDayClick(i))} />;
         })}
       </div>
     </div>
@@ -93,10 +93,10 @@ function LocationCell({ theme, loc, bgColor, isActiveUser, onDayClick }) {
   );
 }
 
-function AssignmentCell({ theme, assignment, hasConflict, userMap, userA, userB, onDayClick }) {
+function AssignmentCell({ theme, assignment, hasConflict, userMap, userA, userB, onClick }) {
   if (hasConflict) {
     return (
-      <div onClick={onDayClick} style={{ display: 'flex', flex: 1, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '8px 2px', background: theme.conflictBg, border: `2px solid ${theme.conflict}`, margin: 1, borderRadius: 4, cursor: 'pointer' }}>
+      <div onClick={onClick} style={{ display: 'flex', flex: 1, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '8px 2px', background: theme.conflictBg, border: `2px solid ${theme.conflict}`, margin: 1, borderRadius: 4, cursor: 'pointer' }}>
         <span style={{ fontSize: 14, color: theme.conflict }}>⚠️</span>
       </div>
     );
@@ -104,7 +104,7 @@ function AssignmentCell({ theme, assignment, hasConflict, userMap, userA, userB,
 
   if (!assignment || !assignment.user_id) {
     return (
-      <div onClick={onDayClick} style={{ display: 'flex', flex: 1, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '8px 2px', background: 'transparent', border: `2px dashed ${theme.textMuted}`, margin: 1, borderRadius: 4, cursor: 'pointer', opacity: 0.6 }}>
+      <div onClick={onClick} style={{ display: 'flex', flex: 1, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '8px 2px', background: 'transparent', border: `2px dashed ${theme.textMuted}`, margin: 1, borderRadius: 4, cursor: 'pointer', opacity: 0.6 }}>
         <span style={{ fontSize: 9, color: theme.textMuted }}>Unset</span>
       </div>
     );
@@ -115,7 +115,7 @@ function AssignmentCell({ theme, assignment, hasConflict, userMap, userA, userB,
   const pillColor = user?.id === userA?.id ? theme.colorA : user?.id === userB?.id ? theme.colorB : theme.colorOcc;
 
   return (
-    <div onClick={onDayClick} style={{ display: 'flex', flex: 1, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '6px 2px', background: theme.surface, border: `1px solid ${theme.border}`, margin: 1, borderRadius: 4, cursor: 'pointer' }}>
+    <div onClick={onClick} style={{ display: 'flex', flex: 1, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '6px 2px', background: theme.surface, border: `1px solid ${theme.border}`, margin: 1, borderRadius: 4, cursor: 'pointer' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: pillColor, borderRadius: 4, padding: '2px 6px' }}>
         <span style={{ fontSize: 9, fontWeight: 700, color: '#ffffff' }}>{initials}</span>
       </div>

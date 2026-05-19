@@ -7,6 +7,7 @@ import WeekNav from './WeekNav.jsx';
 import WeekGrid from './WeekGrid.jsx';
 import SettingsModal from './SettingsModal.jsx';
 import DayModal from './DayModal.jsx';
+import QuickAssignPopup from './QuickAssignPopup.jsx';
 
 const API_BASE = typeof window !== 'undefined' ? '' : 'http://localhost:3000';
 
@@ -48,6 +49,7 @@ function AppInteractive({ theme, isDark, toggleTheme }) {
   const [showSettings, setShowSettings] = useState(false);
   const [selectedDay, setSelectedDay] = useState(null);
   const [toast, setToast] = useState(null);
+  const [quickAssign, setQuickAssign] = useState(null);
 
   const showToast = (msg) => {
     setToast(msg);
@@ -80,6 +82,28 @@ function AppInteractive({ theme, isDark, toggleTheme }) {
     else localStorage.removeItem('kinder_user_id');
   };
 
+  const handleQuickAssign = (dayIndex, field, event) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    setQuickAssign({ dayIndex, field, rect });
+  };
+
+  const saveQuickAssign = async (userId) => {
+    if (!quickAssign || !weekData) return;
+    const day = weekData.days[quickAssign.dayIndex];
+    const body = quickAssign.field === 'dropoff'
+      ? { dropoff_user_id: userId, dropoff_time: day.dropoff?.time || '08:00', pickup_user_id: day.pickup?.user_id || null, pickup_time: day.pickup?.time || '15:00' }
+      : { dropoff_user_id: day.dropoff?.user_id || null, dropoff_time: day.dropoff?.time || '08:00', pickup_user_id: userId, pickup_time: day.pickup?.time || '15:00' };
+    await fetch(`/api/assignments/${day.date}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    setQuickAssign(null);
+    fetchWeek();
+    showToast(`${quickAssign.field === 'dropoff' ? 'Drop-off' : 'Pick-up'} updated`);
+  };
+
+  const handleDayClick = (i) => {
+    setQuickAssign(null);
+    setSelectedDay(i);
+  };
+
   const primaries = users.filter(u => u.type === 'primary' || !u.type);
 
   return (
@@ -88,7 +112,8 @@ function AppInteractive({ theme, isDark, toggleTheme }) {
       <WeekNav theme={theme} label={formatWeekLabel(yearWeek.year, yearWeek.week)} onPrev={() => navigate(-1)} onNext={() => navigate(1)} />
       {loading && <div style={{ padding: 20, textAlign: 'center', color: theme.textMuted }}>Loading...</div>}
       {error && <div style={{ padding: 20, textAlign: 'center', color: theme.conflict }}>{error}</div>}
-      {weekData && !loading && <WeekGrid theme={theme} data={weekData} users={users} activeUserId={activeUserId} onDayClick={(i) => setSelectedDay(i)} />}
+      {weekData && !loading && <WeekGrid theme={theme} data={weekData} users={users} activeUserId={activeUserId} onDayClick={handleDayClick} onQuickAssign={handleQuickAssign} />}
+      {quickAssign && <QuickAssignPopup theme={theme} users={users} field={quickAssign.field} rect={quickAssign.rect} onSelect={saveQuickAssign} onClose={() => setQuickAssign(null)} />}
       {toast && (
         <div style={{ position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)', background: theme.text, color: theme.bg, padding: '8px 16px', borderRadius: 8, fontSize: 13, fontWeight: 600, zIndex: 1000 }}>
           {toast}

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 export default function SettingsModal({ theme, users, onClose, onSaved }) {
   const primaries = users.filter(u => u.type === 'primary' || !u.type);
@@ -28,6 +28,15 @@ export default function SettingsModal({ theme, users, onClose, onSaved }) {
       setSaving(false);
     }
   };
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.key === 'Escape') onClose();
+      if (e.key === 'Enter' && document.activeElement?.tagName !== 'INPUT') save();
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [onClose, names]);
 
   const addOccasional = async () => {
     if (!newName.trim()) return;

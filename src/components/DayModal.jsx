@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { WEEKDAY_SHORT } from '../weekHelpers.js';
 
 export default function DayModal({ theme, day, dayIndex, users, onClose, onSaved }) {
   const primaries = users.filter(u => u.type === 'primary' || !u.type);
-  const allAssignable = [{ id: null, name: 'Nobody' }, ...users];
+  const allAssignable = [{ id: null, name: 'Nobody', type: 'none' }, ...users];
 
   const getLocFor = (uid) => {
     const wl = (day.work_locations || []).find(w => w.user_id === uid);
@@ -40,14 +40,55 @@ export default function DayModal({ theme, day, dayIndex, users, onClose, onSaved
     }
   };
 
+  useEffect(() => {
+    const handler = (e) => {
+      if (e.key === 'Escape') onClose();
+      if (e.key === 'Enter' && !(document.activeElement && document.activeElement.matches('input[type="time"]'))) save();
+    };
+    document.addEventListener('keydown', handler);
+    return () => document.removeEventListener('keydown', handler);
+  }, [onClose, dropoffUserId, dropoffTime, pickupUserId, pickupTime, locations]);
+
   const backdrop = { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)', zIndex: 900 };
   const modal = { display: 'flex', flexDirection: 'column', background: theme.surface, borderRadius: 12, padding: 20, width: 300, maxWidth: '90vw' };
   const sectionTitle = { fontSize: 12, fontWeight: 600, color: theme.textMuted, marginBottom: 6, marginTop: 12 };
-  const selectStyle = { padding: '6px 10px', borderRadius: 6, border: `1px solid ${theme.border}`, background: theme.bg, color: theme.text, fontSize: 13, flex: 1 };
   const timeStyle = { padding: '6px 8px', borderRadius: 6, border: `1px solid ${theme.border}`, background: theme.bg, color: theme.text, fontSize: 13, width: 70 };
   const btnStyle = { display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px 16px', borderRadius: 8, background: theme.colorA, color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', border: 'none' };
 
   const dayLabel = `${WEEKDAY_SHORT[dayIndex]} ${day.date?.slice(5)}`;
+
+  const [userA] = primaries;
+
+  const renderToggleButtons = (selectedId, setSelectedId) => (
+    <div style={{ display: 'flex', flexWrap: 'wrap' }}>
+      {allAssignable.map((u, idx) => {
+        const isSelected = u.id === selectedId;
+        const isNobody = u.id === null;
+        const btnColor = isNobody ? theme.textMuted : (u.id === userA?.id ? theme.colorA : (u.type === 'occasional' ? theme.colorOcc : theme.colorB));
+        return (
+          <div
+            key={u.id || 'none'}
+            onClick={() => setSelectedId(u.id)}
+            style={{
+              padding: '8px 12px',
+              borderRadius: 8,
+              border: isSelected
+                ? `2px solid ${isNobody ? theme.textMuted : btnColor}`
+                : `2px solid ${theme.border}`,
+              cursor: 'pointer',
+              fontWeight: 600,
+              fontSize: 13,
+              marginLeft: idx > 0 ? 6 : 0,
+              background: isSelected ? (isNobody ? theme.surface : btnColor) : theme.surface,
+              color: isSelected ? (isNobody ? theme.textMuted : '#fff') : theme.text,
+            }}
+          >
+            {u.name}
+          </div>
+        );
+      })}
+    </div>
+  );
 
   return (
     <div style={backdrop} onClick={onClose}>
@@ -69,17 +110,13 @@ export default function DayModal({ theme, day, dayIndex, users, onClose, onSaved
 
         <span style={sectionTitle}>Drop-off</span>
         <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
-          <select style={selectStyle} value={dropoffUserId || ''} onChange={e => setDropoffUserId(e.target.value ? parseInt(e.target.value) : null)}>
-            {allAssignable.map(u => <option key={u.id || 'none'} value={u.id || ''}>{u.name}</option>)}
-          </select>
+          {renderToggleButtons(dropoffUserId, setDropoffUserId)}
           <input type="time" style={{ ...timeStyle, marginLeft: 6 }} value={dropoffTime} onChange={e => setDropoffTime(e.target.value)} />
         </div>
 
         <span style={sectionTitle}>Pick-up</span>
         <div style={{ display: 'flex', alignItems: 'center', marginBottom: 16 }}>
-          <select style={selectStyle} value={pickupUserId || ''} onChange={e => setPickupUserId(e.target.value ? parseInt(e.target.value) : null)}>
-            {allAssignable.map(u => <option key={u.id || 'none'} value={u.id || ''}>{u.name}</option>)}
-          </select>
+          {renderToggleButtons(pickupUserId, setPickupUserId)}
           <input type="time" style={{ ...timeStyle, marginLeft: 6 }} value={pickupTime} onChange={e => setPickupTime(e.target.value)} />
         </div>
 
