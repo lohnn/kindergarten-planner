@@ -1,5 +1,4 @@
-FROM node:lts-alpine
-RUN apk add --no-cache python3 make g++
+FROM node:lts-slim
 WORKDIR /app
 COPY package*.json ./
 RUN npm install --omit=dev
