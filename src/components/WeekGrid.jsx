@@ -79,7 +79,7 @@ function LocationCell({ theme, loc, isActiveUser, onClick }) {
   const isOffice = location === 'office';
   const isUnknown = !location || location === 'unknown';
 
-  const icon = isOffice ? '🏢' : isHome ? '🏠' : '?';
+  const icon = isOffice ? '🏢' : isHome ? '🏠' : null;
   const label = isOffice ? 'Office' : isHome ? 'WFH' : 'Unknown';
   const accentColor = isHome ? theme.locHome : isOffice ? theme.locOffice : theme.locUnknown;
 
@@ -90,20 +90,21 @@ function LocationCell({ theme, loc, isActiveUser, onClick }) {
     alignItems: 'center',
     justifyContent: 'center',
     padding: '12px 2px',
-    background: isUnknown ? 'transparent' : theme.surface,
+    background: isUnknown ? theme.bg : theme.surface,
     border: isUnknown ? `2px dashed ${theme.locUnknown}` : `1px solid ${theme.border}`,
     borderLeft: isUnknown ? `2px dashed ${theme.locUnknown}` : `4px solid ${accentColor}`,
     margin: 1,
     borderRadius: 4,
     cursor: onClick ? 'pointer' : 'default',
-    opacity: isUnknown ? 0.6 : 1,
+    opacity: isUnknown ? 0.7 : 1,
   };
 
   return (
     <div onClick={onClick} style={cellStyle}>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        <span style={{ fontSize: 16 }}>{icon}</span>
-        <span style={{ fontSize: 8, fontWeight: 600, color: accentColor, marginTop: 2 }}>{label}</span>
+        {icon && <span style={{ fontSize: 16 }}>{icon}</span>}
+        {isUnknown && <span style={{ fontSize: 14, fontWeight: 700, color: theme.textMuted }}>?</span>}
+        <span style={{ fontSize: 8, fontWeight: 600, color: isUnknown ? theme.textMuted : accentColor, marginTop: 2 }}>{label}</span>
       </div>
     </div>
   );
@@ -161,7 +162,7 @@ function AssignmentCell({ theme, assignment, hasConflict, userMap, userA, userB,
 
   if (!assignment || !assignment.user_id) {
     return (
-      <div {...pressProps} style={{ display: 'flex', flex: 1, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '12px 2px', background: 'transparent', border: `2px dashed ${theme.border}`, margin: 1, borderRadius: 4, cursor: 'pointer', opacity: 0.4 }}>
+      <div {...pressProps} style={{ display: 'flex', flex: 1, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '12px 2px', background: theme.bg, border: `2px dashed ${theme.border}`, margin: 1, borderRadius: 4, cursor: 'pointer', opacity: 0.5 }}>
         <span style={{ fontSize: 9, color: theme.textMuted }}>Unset</span>
       </div>
     );
