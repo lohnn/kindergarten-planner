@@ -22,8 +22,11 @@ app.use('/api/days', require('./routes/days'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/assignments', require('./routes/assignments'));
 
-// Static files
-app.use(express.static(path.join(__dirname, 'public')));
+// Static files — serve from dist/ (Vite build output) if it exists, else public/
+const fs = require('fs');
+const distDir = path.join(__dirname, 'dist');
+const staticDir = fs.existsSync(distDir) ? distDir : path.join(__dirname, 'public');
+app.use(express.static(staticDir));
 
 app.listen(PORT, () => {
   console.log(`Kindergarten planner running on port ${PORT}`);
