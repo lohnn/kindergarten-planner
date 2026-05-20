@@ -1,0 +1,11 @@
+{
+  "name": "Kindergarten Planner",
+  "short_name": "KinderPlanner",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#f9fafb",
+  "theme_color": "#3b82f6",
+  "description": "Schedule planner for kindergarten drop-off and pick-up.",
+  "orientation": "portrait-primary",
+  "icons": []
+}
