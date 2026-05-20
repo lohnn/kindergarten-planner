@@ -226,7 +226,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
   Future<void> _pickTime({required bool isDropoff}) async {
     final initial = isDropoff ? _dropoffTime : _pickupTime;
-    final picked = await showTimePicker(context: context, initialTime: initial);
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: initial,
+      builder: (context, child) {
+        return MediaQuery(
+          data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
+          child: child!,
+        );
+      },
+    );
     if (picked != null) {
       setState(() {
         if (isDropoff) {
