@@ -53,5 +53,17 @@ class AppColors {
   // Today - dark
   static const darkTodayRing = Color(0xFFF59E0B);
   static const darkTodayHeaderBg = Color(0xFF2D2410);
-  static const darkTodayColBg = Color(0x40FB8F24);
+  static const darkTodayColBg = Color(0x40FBbF24);
+
+  // Location state colors - light
+  static const lightLocHome = Color(0xFF15803D);
+  static const lightLocHomeBg = Color(0xFFDCFCE7);
+  static const lightLocOffice = Color(0xFFB91C1C);
+  static const lightLocOfficeBg = Color(0xFFFEE2E2);
+
+  // Location state colors - dark
+  static const darkLocHome = Color(0xFF4ADE80);
+  static const darkLocHomeBg = Color(0xFF064E3B);
+  static const darkLocOffice = Color(0xFFD4A0A0);
+  static const darkLocOfficeBg = Color(0xFF3B1515);
 }

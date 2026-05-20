@@ -33,15 +33,10 @@ class AssignmentCell extends ConsumerWidget {
         decoration: BoxDecoration(
           color: ext.conflictBg,
           borderRadius: BorderRadius.circular(4),
+          border: Border.all(color: ext.conflict, width: 2),
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text('⚠️', style: TextStyle(fontSize: 12)),
-            const SizedBox(width: 2),
-            Text('none', style: TextStyle(fontSize: 10, color: ext.conflict)),
-          ],
+        child: const Center(
+          child: Text('⚠️', style: TextStyle(fontSize: 14)),
         ),
       );
     } else {
@@ -82,9 +77,15 @@ class AssignmentCell extends ConsumerWidget {
       onTap: () => _showAssignPopup(context, ref),
       child: Container(
         decoration: BoxDecoration(
-          color: isToday ? ext.todayColBg : null,
+          color: isToday ? null : ext.bg,
           borderRadius: BorderRadius.circular(4),
         ),
+        foregroundDecoration: isToday
+            ? BoxDecoration(
+                color: ext.todayColBg,
+                borderRadius: BorderRadius.circular(4),
+              )
+            : null,
         padding: const EdgeInsets.symmetric(vertical: 2),
         child: Center(child: content),
       ),

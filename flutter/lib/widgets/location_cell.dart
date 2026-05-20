@@ -23,42 +23,59 @@ class LocationCell extends ConsumerWidget {
 
     String icon;
     String label;
-    Color bgColor;
+    Color borderColor;
+    final bool isUnknown = location == 'unknown' || location.isEmpty;
+
     switch (location) {
       case 'home':
         icon = '🏠';
         label = 'WFH';
-        bgColor = const Color(0x1A22C55E); // green tint
+        borderColor = ext.locHome;
         break;
       case 'office':
         icon = '🏢';
         label = 'Office';
-        bgColor = const Color(0x1A3B82F6); // blue tint
+        borderColor = ext.locOffice;
         break;
       default:
-        icon = '❓';
+        icon = '?';
         label = '';
-        bgColor = Colors.transparent;
+        borderColor = ext.border;
     }
+
+    // Background: subtle bg for non-today, today overlay on top
+    final cellBg = isToday ? null : ext.bg;
 
     return GestureDetector(
       onTap: () => _toggleLocation(ref),
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
         decoration: BoxDecoration(
-          color: isToday ? ext.todayColBg : bgColor,
-          borderRadius: BorderRadius.circular(4),
+          color: cellBg,
+          border: Border(
+            left: BorderSide(
+              color: borderColor,
+              width: 4,
+              style: isUnknown ? BorderStyle.solid : BorderStyle.solid,
+            ),
+          ),
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(icon, style: const TextStyle(fontSize: 16)),
-            if (label.isNotEmpty)
-              Text(
-                label,
-                style: TextStyle(fontSize: 10, color: ext.textMuted),
-              ),
-          ],
+        foregroundDecoration: isToday
+            ? BoxDecoration(color: ext.todayColBg)
+            : null,
+        child: Opacity(
+          opacity: isUnknown ? 0.7 : 1.0,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(icon, style: const TextStyle(fontSize: 16)),
+              if (label.isNotEmpty)
+                Text(
+                  label,
+                  style: TextStyle(fontSize: 10, color: ext.textMuted),
+                ),
+            ],
+          ),
         ),
       ),
     );

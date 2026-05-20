@@ -74,6 +74,11 @@ class AppColorsExtension extends ThemeExtension<AppColorsExtension> {
   final Color todayColBg;
   final Color textMuted;
   final Color border;
+  final Color locHome;
+  final Color locHomeBg;
+  final Color locOffice;
+  final Color locOfficeBg;
+  final Color bg;
 
   const AppColorsExtension({
     required this.colorA,
@@ -90,6 +95,11 @@ class AppColorsExtension extends ThemeExtension<AppColorsExtension> {
     required this.todayColBg,
     required this.textMuted,
     required this.border,
+    required this.locHome,
+    required this.locHomeBg,
+    required this.locOffice,
+    required this.locOfficeBg,
+    required this.bg,
   });
 
   const AppColorsExtension.light()
@@ -106,7 +116,12 @@ class AppColorsExtension extends ThemeExtension<AppColorsExtension> {
         todayHeaderBg = AppColors.lightTodayHeaderBg,
         todayColBg = AppColors.lightTodayColBg,
         textMuted = AppColors.lightTextMuted,
-        border = AppColors.lightBorder;
+        border = AppColors.lightBorder,
+        locHome = AppColors.lightLocHome,
+        locHomeBg = AppColors.lightLocHomeBg,
+        locOffice = AppColors.lightLocOffice,
+        locOfficeBg = AppColors.lightLocOfficeBg,
+        bg = AppColors.lightBg;
 
   const AppColorsExtension.dark()
       : colorA = AppColors.darkColorA,
@@ -122,7 +137,12 @@ class AppColorsExtension extends ThemeExtension<AppColorsExtension> {
         todayHeaderBg = AppColors.darkTodayHeaderBg,
         todayColBg = AppColors.darkTodayColBg,
         textMuted = AppColors.darkTextMuted,
-        border = AppColors.darkBorder;
+        border = AppColors.darkBorder,
+        locHome = AppColors.darkLocHome,
+        locHomeBg = AppColors.darkLocHomeBg,
+        locOffice = AppColors.darkLocOffice,
+        locOfficeBg = AppColors.darkLocOfficeBg,
+        bg = AppColors.darkBg;
 
   @override
   ThemeExtension<AppColorsExtension> copyWith({
@@ -140,6 +160,11 @@ class AppColorsExtension extends ThemeExtension<AppColorsExtension> {
     Color? todayColBg,
     Color? textMuted,
     Color? border,
+    Color? locHome,
+    Color? locHomeBg,
+    Color? locOffice,
+    Color? locOfficeBg,
+    Color? bg,
   }) {
     return AppColorsExtension(
       colorA: colorA ?? this.colorA,
@@ -156,6 +181,11 @@ class AppColorsExtension extends ThemeExtension<AppColorsExtension> {
       todayColBg: todayColBg ?? this.todayColBg,
       textMuted: textMuted ?? this.textMuted,
       border: border ?? this.border,
+      locHome: locHome ?? this.locHome,
+      locHomeBg: locHomeBg ?? this.locHomeBg,
+      locOffice: locOffice ?? this.locOffice,
+      locOfficeBg: locOfficeBg ?? this.locOfficeBg,
+      bg: bg ?? this.bg,
     );
   }
 
@@ -180,6 +210,11 @@ class AppColorsExtension extends ThemeExtension<AppColorsExtension> {
       todayColBg: Color.lerp(todayColBg, other.todayColBg, t)!,
       textMuted: Color.lerp(textMuted, other.textMuted, t)!,
       border: Color.lerp(border, other.border, t)!,
+      locHome: Color.lerp(locHome, other.locHome, t)!,
+      locHomeBg: Color.lerp(locHomeBg, other.locHomeBg, t)!,
+      locOffice: Color.lerp(locOffice, other.locOffice, t)!,
+      locOfficeBg: Color.lerp(locOfficeBg, other.locOfficeBg, t)!,
+      bg: Color.lerp(bg, other.bg, t)!,
     );
   }
 }
