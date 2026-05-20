@@ -6,10 +6,20 @@ import '../theme/app_theme.dart';
 class WeekNav extends ConsumerWidget {
   const WeekNav({super.key});
 
+  static (int, int) _currentWeek() {
+    final now = DateTime.now();
+    final dayOfYear = now.difference(DateTime(now.year, 1, 1)).inDays + 1;
+    final weekDay = now.weekday;
+    final weekNumber = ((dayOfYear - weekDay + 10) / 7).floor();
+    return (now.year, weekNumber);
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final (year, week) = ref.watch(currentWeekIndexProvider);
     final ext = Theme.of(context).extension<AppColorsExtension>()!;
+    final current = _currentWeek();
+    final isCurrentWeek = year == current.$1 && week == current.$2;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -31,6 +41,17 @@ class WeekNav extends ConsumerWidget {
             icon: const Icon(Icons.chevron_right),
             onPressed: () => _navigate(ref, year, week, 1),
           ),
+          if (!isCurrentWeek)
+            TextButton(
+              onPressed: () {
+                ref.read(currentWeekIndexProvider.notifier).state = current;
+              },
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                minimumSize: const Size(0, 32),
+              ),
+              child: const Text('Today'),
+            ),
         ],
       ),
     );

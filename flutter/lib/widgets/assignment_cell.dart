@@ -107,6 +107,7 @@ class AssignmentCell extends ConsumerWidget {
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 2),
         child: Container(
+          constraints: const BoxConstraints(minHeight: 48),
           padding: const EdgeInsets.symmetric(vertical: 8),
           decoration: BoxDecoration(
             color: isToday ? ext.todayColBg : cellBg,

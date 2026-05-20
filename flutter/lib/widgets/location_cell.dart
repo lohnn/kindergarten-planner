@@ -44,7 +44,7 @@ class LocationCell extends ConsumerWidget {
     }
 
     return GestureDetector(
-      onTap: () => _toggleLocation(ref),
+      onTapUp: (details) => _showLocationPopup(context, ref, details.globalPosition),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 2),
         child: Container(
@@ -81,16 +81,21 @@ class LocationCell extends ConsumerWidget {
     );
   }
 
-  void _toggleLocation(WidgetRef ref) {
-    final next = switch (location) {
-      'unknown' => 'home',
-      'home' => 'office',
-      'office' => 'unknown',
-      _ => 'home',
-    };
-    final api = ref.read(apiServiceProvider);
-    api.updateLocation(date, userId, next).then((_) {
-      ref.invalidate(weekProvider);
-    });
+  void _showLocationPopup(BuildContext context, WidgetRef ref, Offset position) async {
+    final result = await showMenu<String>(
+      context: context,
+      position: RelativeRect.fromLTRB(position.dx, position.dy, position.dx + 1, position.dy + 1),
+      items: const [
+        PopupMenuItem(value: 'home', child: Text('🏠 Home')),
+        PopupMenuItem(value: 'office', child: Text('🏢 Office')),
+        PopupMenuItem(value: 'unknown', child: Text('❓ Unknown')),
+      ],
+    );
+    if (result != null && result != location) {
+      final api = ref.read(apiServiceProvider);
+      api.updateLocation(date, userId, result).then((_) {
+        ref.invalidate(weekProvider);
+      });
+    }
   }
 }

@@ -57,6 +57,8 @@ class WeekGrid extends StatelessWidget {
               label: _dayLabels[idx < 5 ? idx : 0],
               date: dateLabel,
               isToday: isToday,
+              day: day,
+              users: week.users,
             ),
           );
         }),
@@ -113,28 +115,34 @@ class WeekGrid extends StatelessWidget {
   ) {
     final ext = Theme.of(context).extension<AppColorsExtension>()!;
 
-    return Row(
-      children: [
-        SizedBox(
-          width: 64,
-          child: Text(
-            label,
-            style: TextStyle(fontSize: 11, color: ext.textMuted),
-          ),
-        ),
-        ...week.days.map((day) {
-          final assignment = type == 'dropoff' ? day.dropoff : day.pickup;
-          return Expanded(
-            child: AssignmentCell(
-              date: day.date,
-              type: type,
-              assignment: assignment,
-              users: week.users,
-              isToday: day.date == today,
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SizedBox(
+            width: 64,
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                label,
+                style: TextStyle(fontSize: 11, color: ext.textMuted),
+              ),
             ),
-          );
-        }),
-      ],
+          ),
+          ...week.days.map((day) {
+            final assignment = type == 'dropoff' ? day.dropoff : day.pickup;
+            return Expanded(
+              child: AssignmentCell(
+                date: day.date,
+                type: type,
+                assignment: assignment,
+                users: week.users,
+                isToday: day.date == today,
+              ),
+            );
+          }),
+        ],
+      ),
     );
   }
 }
