@@ -15,8 +15,10 @@ class Day {
 
   factory Day.fromJson(Map<String, dynamic> json) {
     final locations = <int, String>{};
-    if (json['locations'] is List) {
-      for (final loc in json['locations'] as List) {
+    // API returns 'work_locations' array of {user_id, work_location}
+    final rawLocs = json['work_locations'] ?? json['locations'];
+    if (rawLocs is List) {
+      for (final loc in rawLocs) {
         locations[loc['user_id'] as int] = loc['work_location'] as String? ?? 'unknown';
       }
     }

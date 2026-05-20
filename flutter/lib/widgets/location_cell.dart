@@ -39,42 +39,42 @@ class LocationCell extends ConsumerWidget {
         break;
       default:
         icon = '?';
-        label = '';
+        label = 'Unknown';
         borderColor = ext.border;
     }
 
-    // Background: subtle bg for non-today, today overlay on top
-    final cellBg = isToday ? null : ext.bg;
-
     return GestureDetector(
       onTap: () => _toggleLocation(ref),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
-        decoration: BoxDecoration(
-          color: cellBg,
-          border: Border(
-            left: BorderSide(
-              color: borderColor,
-              width: 4,
-              style: isUnknown ? BorderStyle.solid : BorderStyle.solid,
-            ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 2),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 4),
+          decoration: BoxDecoration(
+            color: isToday ? ext.todayColBg : ext.bg,
+            border: isUnknown
+                ? Border.all(
+                    color: ext.border,
+                    width: 2,
+                    strokeAlign: BorderSide.strokeAlignInside,
+                  )
+                : Border(
+                    left: BorderSide(color: borderColor, width: 4),
+                  ),
+            borderRadius: isUnknown ? BorderRadius.circular(4) : null,
           ),
-        ),
-        foregroundDecoration: isToday
-            ? BoxDecoration(color: ext.todayColBg)
-            : null,
-        child: Opacity(
-          opacity: isUnknown ? 0.7 : 1.0,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(icon, style: const TextStyle(fontSize: 16)),
-              if (label.isNotEmpty)
+          child: Opacity(
+            opacity: isUnknown ? 0.7 : 1.0,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(icon, style: const TextStyle(fontSize: 16)),
+                const SizedBox(height: 2),
                 Text(
                   label,
                   style: TextStyle(fontSize: 10, color: ext.textMuted),
                 ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

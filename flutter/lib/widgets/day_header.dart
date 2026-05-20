@@ -20,8 +20,11 @@ class DayHeader extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
         color: isToday ? ext.todayHeaderBg : Colors.transparent,
-        borderRadius: BorderRadius.circular(6),
-        border: isToday ? Border.all(color: ext.todayRing, width: 2) : null,
+        border: isToday
+            ? Border(
+                bottom: BorderSide(color: ext.todayRing, width: 2),
+              )
+            : null,
       ),
       child: Column(
         children: [

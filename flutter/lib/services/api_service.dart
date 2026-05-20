@@ -37,6 +37,35 @@ class ApiService {
     }
   }
 
+  Future<void> createUser(String name, String type) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/users'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'name': name, 'type': type}),
+    );
+    if (response.statusCode != 200 && response.statusCode != 201) {
+      throw Exception('Failed to create user: ${response.statusCode}');
+    }
+  }
+
+  Future<void> updateUser(int id, String name) async {
+    final response = await http.put(
+      Uri.parse('$baseUrl/users/$id'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode({'name': name}),
+    );
+    if (response.statusCode != 200) {
+      throw Exception('Failed to update user: ${response.statusCode}');
+    }
+  }
+
+  Future<void> deleteUser(int id) async {
+    final response = await http.delete(Uri.parse('$baseUrl/users/$id'));
+    if (response.statusCode != 200 && response.statusCode != 204) {
+      throw Exception('Failed to delete user: ${response.statusCode}');
+    }
+  }
+
   Future<void> updateAssignment({
     required String date,
     int? dropoffUserId,

@@ -37,11 +37,11 @@ final mockWeek = Week(
       dropoff: Assignment(userId: 1, time: '08:00'),
       pickup: Assignment(userId: 3, time: '14:00'),
     ),
-    // Thursday May 21 - NO assignments (conflict!)
+    // Thursday May 21 - NO assignments (conflict!) + unknown location for Papa
     const Day(
       date: '2026-05-21',
       dayOfWeek: 4,
-      locations: {1: 'office', 2: 'office'},
+      locations: {1: 'office', 2: 'unknown'},
       dropoff: null,
       pickup: null,
     ),

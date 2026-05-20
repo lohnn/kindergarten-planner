@@ -1,9 +1,6 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:kinder_planner/models/week.dart';
 import 'package:kinder_planner/providers/week_provider.dart';
 import 'package:kinder_planner/screens/home_screen.dart';
 import 'package:kinder_planner/theme/app_theme.dart';

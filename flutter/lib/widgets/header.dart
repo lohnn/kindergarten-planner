@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/active_user_provider.dart';
 import '../providers/users_provider.dart';
-import '../providers/theme_provider.dart';
 import '../models/user.dart';
+import '../screens/settings_screen.dart';
 import '../theme/app_theme.dart';
 
 class AppHeader extends ConsumerWidget {
@@ -52,51 +52,8 @@ class AppHeader extends ConsumerWidget {
   }
 
   void _showSettings(BuildContext context, WidgetRef ref) {
-    showDialog(
-      context: context,
-      builder: (ctx) => const _SettingsDialog(),
-    );
-  }
-}
-
-class _SettingsDialog extends ConsumerWidget {
-  const _SettingsDialog();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final currentMode = ref.watch(themeModeProvider);
-
-    return AlertDialog(
-      title: const Text('Settings', style: TextStyle(fontSize: 18)),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Theme', style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: Theme.of(context).extension<AppColorsExtension>()!.textMuted,
-          )),
-          const SizedBox(height: 8),
-          SegmentedButton<ThemeMode>(
-            segments: const [
-              ButtonSegment(value: ThemeMode.system, label: Text('System')),
-              ButtonSegment(value: ThemeMode.light, label: Text('Light')),
-              ButtonSegment(value: ThemeMode.dark, label: Text('Dark')),
-            ],
-            selected: {currentMode},
-            onSelectionChanged: (modes) {
-              ref.read(themeModeProvider.notifier).setMode(modes.first);
-            },
-          ),
-        ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Close'),
-        ),
-      ],
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const SettingsScreen()),
     );
   }
 }

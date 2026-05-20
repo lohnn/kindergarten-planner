@@ -27,67 +27,94 @@ class AssignmentCell extends ConsumerWidget {
     final isAssigned = assignment?.isAssigned ?? false;
 
     Widget content;
+    Color? cellBg;
+    BoxBorder? cellBorder;
+
     if (!isAssigned) {
-      content = Container(
-        padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
-        decoration: BoxDecoration(
-          color: ext.conflictBg,
-          borderRadius: BorderRadius.circular(4),
-          border: Border.all(color: ext.conflict, width: 2),
-        ),
-        child: const Center(
-          child: Text('⚠️', style: TextStyle(fontSize: 14)),
+      // Unassigned: dashed-style border + muted text
+      cellBg = null;
+      cellBorder = Border.all(color: ext.border, width: 1);
+      content = Opacity(
+        opacity: 0.7,
+        child: Text(
+          'Unset',
+          style: TextStyle(fontSize: 10, color: ext.textMuted),
         ),
       );
     } else {
       final user = users.where((u) => u.id == assignment!.userId).firstOrNull;
-      final userIndex = users.indexWhere((u) => u.id == assignment!.userId);
-      final isA = userIndex == 0;
-      final pillColor = isA ? ext.colorALight : ext.colorBLight;
-      final textColor = isA ? ext.colorAText : ext.colorBText;
+      final primaryUsers = users.where((u) => u.isPrimary).toList();
+      final primaryIndex = primaryUsers.indexWhere((u) => u.id == assignment!.userId);
+      final bool isA = primaryIndex == 0;
+      final bool isB = primaryIndex == 1;
 
-      content = Container(
-        padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 6),
-        decoration: BoxDecoration(
-          color: pillColor,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              user?.name ?? '?',
+      Color pillColor;
+      Color pillTextColor;
+      Color lightBg;
+
+      if (isA) {
+        pillColor = ext.colorA;
+        pillTextColor = Colors.white;
+        lightBg = ext.colorALight;
+      } else if (isB) {
+        pillColor = ext.colorB;
+        pillTextColor = Colors.white;
+        lightBg = ext.colorBLight;
+      } else {
+        pillColor = ext.colorOcc;
+        pillTextColor = Colors.white;
+        lightBg = ext.colorALight; // fallback
+      }
+
+      cellBg = lightBg;
+      cellBorder = Border.all(color: ext.border, width: 1);
+
+      // Get initials (first 2 chars)
+      final initials = (user?.name ?? '??').substring(0, 2).toUpperCase();
+
+      content = Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Pill only around initials
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              color: pillColor,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Text(
+              initials,
               style: TextStyle(
                 fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: textColor,
+                fontWeight: FontWeight.w700,
+                color: pillTextColor,
               ),
             ),
-            if (assignment!.time != null)
-              Text(
-                assignment!.time!,
-                style: TextStyle(fontSize: 10, color: textColor),
-              ),
+          ),
+          if (assignment!.time != null) ...[
+            const SizedBox(height: 2),
+            Text(
+              assignment!.time!,
+              style: TextStyle(fontSize: 10, color: ext.textMuted),
+            ),
           ],
-        ),
+        ],
       );
     }
 
     return GestureDetector(
       onTap: () => _showAssignPopup(context, ref),
-      child: Container(
-        decoration: BoxDecoration(
-          color: isToday ? null : ext.bg,
-          borderRadius: BorderRadius.circular(4),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 2),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            color: isToday ? ext.todayColBg : cellBg,
+            border: cellBorder,
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Center(child: content),
         ),
-        foregroundDecoration: isToday
-            ? BoxDecoration(
-                color: ext.todayColBg,
-                borderRadius: BorderRadius.circular(4),
-              )
-            : null,
-        padding: const EdgeInsets.symmetric(vertical: 2),
-        child: Center(child: content),
       ),
     );
   }
