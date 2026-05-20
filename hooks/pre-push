@@ -1,0 +1,22 @@
+#!/bin/bash
+# Pre-push hook: rebuild Flutter web and amend the commit if build output changed
+set -e
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+FLUTTER_DIR="$REPO_ROOT/flutter"
+
+# Find flutter on PATH or common locations
+export PATH="$PATH:$HOME/flutter/bin:$HOME/.flutter/bin:/opt/flutter/bin:/opt/homebrew/bin"
+
+echo "🔨 Building Flutter web..."
+(cd "$FLUTTER_DIR" && flutter build web --release)
+
+# Check if build output changed
+if ! git diff --quiet -- "$FLUTTER_DIR/build/web/"; then
+  echo "📦 Flutter build output changed, adding to commit..."
+  git add "$FLUTTER_DIR/build/web/"
+  git commit --amend --no-edit --no-verify
+  echo "✅ Commit amended with fresh Flutter web build."
+else
+  echo "✅ Flutter web build already up to date."
+fi

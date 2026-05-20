@@ -22,11 +22,18 @@ app.use('/api/days', require('./routes/days'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/assignments', require('./routes/assignments'));
 
-// Static files — serve from dist/ (Vite build output) if it exists, else public/
+// Static files — serve Flutter web build, fall back to dist/ or public/
 const fs = require('fs');
+const flutterDir = path.join(__dirname, 'flutter', 'build', 'web');
 const distDir = path.join(__dirname, 'dist');
-const staticDir = fs.existsSync(distDir) ? distDir : path.join(__dirname, 'public');
+const staticDir = fs.existsSync(flutterDir) ? flutterDir
+  : fs.existsSync(distDir) ? distDir
+  : path.join(__dirname, 'public');
 app.use(express.static(staticDir));
+// SPA fallback — serve index.html for non-API routes
+app.get('*', (req, res) => {
+  res.sendFile(path.join(staticDir, 'index.html'));
+});
 
 app.listen(PORT, () => {
   console.log(`Kindergarten planner running on port ${PORT}`);

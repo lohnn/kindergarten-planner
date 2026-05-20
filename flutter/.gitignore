@@ -27,4 +27,6 @@ migrate_working_dir/
 .flutter-plugins-dependencies
 .pub-cache/
 .pub/
-/build/
+# Build output (except web, which we commit pre-built for the Pi)
+/build/*/
+!/build/web/
