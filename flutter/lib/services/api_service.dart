@@ -68,23 +68,34 @@ class ApiService {
 
   Future<void> updateAssignment({
     required String date,
-    int? dropoffUserId,
-    String? dropoffTime,
-    int? pickupUserId,
-    String? pickupTime,
+    required Map<String, dynamic> fields,
   }) async {
     final response = await http.put(
       Uri.parse('$baseUrl/assignments/$date'),
       headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'dropoff_user_id': dropoffUserId,
-        'dropoff_time': dropoffTime,
-        'pickup_user_id': pickupUserId,
-        'pickup_time': pickupTime,
-      }),
+      body: jsonEncode(fields),
     );
     if (response.statusCode != 200) {
       throw Exception('Failed to update assignment: ${response.statusCode}');
+    }
+  }
+
+  Future<Map<String, dynamic>> getSettings() async {
+    final response = await http.get(Uri.parse('$baseUrl/settings'));
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body) as Map<String, dynamic>;
+    }
+    throw Exception('Failed to load settings: ${response.statusCode}');
+  }
+
+  Future<void> updateSettings(Map<String, String> settings) async {
+    final response = await http.put(
+      Uri.parse('$baseUrl/settings'),
+      headers: {'Content-Type': 'application/json'},
+      body: jsonEncode(settings),
+    );
+    if (response.statusCode != 200) {
+      throw Exception('Failed to update settings: ${response.statusCode}');
     }
   }
 }

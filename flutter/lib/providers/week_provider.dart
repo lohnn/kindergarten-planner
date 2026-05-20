@@ -21,3 +21,9 @@ final weekProvider = FutureProvider<Week>((ref) async {
   final json = await api.getWeek(year, week);
   return Week.fromJson(json, year, week);
 });
+
+/// Fetches settings from the API.
+final settingsProvider = FutureProvider<Map<String, dynamic>>((ref) async {
+  final api = ref.read(apiServiceProvider);
+  return api.getSettings();
+});

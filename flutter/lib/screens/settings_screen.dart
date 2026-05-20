@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user.dart';
 import '../providers/theme_provider.dart';
 import '../providers/users_provider.dart';
@@ -28,14 +27,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   }
 
   Future<void> _loadDefaults() async {
-    final prefs = await SharedPreferences.getInstance();
-    final dropoff = prefs.getString('default_dropoff_time') ?? '08:00';
-    final pickup = prefs.getString('default_pickup_time') ?? '15:00';
-    setState(() {
-      _dropoffTime = _parseTime(dropoff);
-      _pickupTime = _parseTime(pickup);
-      _loading = false;
-    });
+    final api = ref.read(apiServiceProvider);
+    try {
+      final settings = await api.getSettings();
+      final dropoff = settings['default_dropoff_time'] as String? ?? '08:00';
+      final pickup = settings['default_pickup_time'] as String? ?? '15:00';
+      setState(() {
+        _dropoffTime = _parseTime(dropoff);
+        _pickupTime = _parseTime(pickup);
+        _loading = false;
+      });
+    } catch (_) {
+      setState(() => _loading = false);
+    }
   }
 
   TimeOfDay _parseTime(String t) {
@@ -259,13 +263,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       await api.updateUser(entry.key, entry.value.text.trim());
     }
 
-    // Save default times to shared_preferences
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('default_dropoff_time', _formatTime(_dropoffTime));
-    await prefs.setString('default_pickup_time', _formatTime(_pickupTime));
+    // Save default times via API
+    await api.updateSettings({
+      'default_dropoff_time': _formatTime(_dropoffTime),
+      'default_pickup_time': _formatTime(_pickupTime),
+    });
 
     ref.invalidate(usersProvider);
     ref.invalidate(weekProvider);
+    ref.invalidate(settingsProvider);
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(

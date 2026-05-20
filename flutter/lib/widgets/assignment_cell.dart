@@ -103,7 +103,7 @@ class AssignmentCell extends ConsumerWidget {
     }
 
     return GestureDetector(
-      onTap: () => _showAssignPopup(context, ref),
+      onTapUp: (details) => _showAssignPopup(context, ref, details.globalPosition),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 2),
         child: Container(
@@ -120,58 +120,46 @@ class AssignmentCell extends ConsumerWidget {
     );
   }
 
-  void _showAssignPopup(BuildContext context, WidgetRef ref) {
-    final ext = Theme.of(context).extension<AppColorsExtension>()!;
+  void _showAssignPopup(BuildContext context, WidgetRef ref, Offset position) async {
     final primaryUsers = users.where((u) => u.isPrimary).toList();
+    final occasionalUsers = users.where((u) => !u.isPrimary).toList();
 
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(
-          type == 'dropoff' ? 'Assign Drop-off' : 'Assign Pick-up',
-          style: const TextStyle(fontSize: 16),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: primaryUsers.map((user) {
-            final isA = primaryUsers.indexOf(user) == 0;
-            final color = isA ? ext.colorA : ext.colorB;
-            return ListTile(
-              leading: CircleAvatar(
-                backgroundColor: color.withValues(alpha: 0.2),
-                child: Text(user.name[0], style: TextStyle(color: color)),
-              ),
-              title: Text(user.name),
-              onTap: () {
-                Navigator.of(ctx).pop();
-                _assign(ref, user.id);
-              },
-            );
-          }).toList(),
-        ),
+    final items = <PopupMenuEntry<int?>>[
+      ...primaryUsers.map((u) => PopupMenuItem<int?>(
+            value: u.id,
+            child: Text(u.name),
+          )),
+      if (occasionalUsers.isNotEmpty) const PopupMenuDivider(),
+      ...occasionalUsers.map((u) => PopupMenuItem<int?>(
+            value: u.id,
+            child: Text(u.name),
+          )),
+      const PopupMenuDivider(),
+      const PopupMenuItem<int?>(
+        value: -1,
+        child: Text('Clear'),
       ),
-    );
-  }
+    ];
 
-  void _assign(WidgetRef ref, int userId) {
-    final api = ref.read(apiServiceProvider);
-    final defaultTime = type == 'dropoff' ? '08:00' : '15:00';
-    if (type == 'dropoff') {
-      api
-          .updateAssignment(
-            date: date,
-            dropoffUserId: userId,
-            dropoffTime: defaultTime,
-          )
-          .then((_) => ref.invalidate(weekProvider));
-    } else {
-      api
-          .updateAssignment(
-            date: date,
-            pickupUserId: userId,
-            pickupTime: defaultTime,
-          )
-          .then((_) => ref.invalidate(weekProvider));
+    final result = await showMenu<int?>(
+      context: context,
+      position: RelativeRect.fromLTRB(
+          position.dx, position.dy, position.dx + 1, position.dy + 1),
+      items: items,
+    );
+
+    if (result != null) {
+      final api = ref.read(apiServiceProvider);
+      final fieldPrefix = type == 'dropoff' ? 'dropoff' : 'pickup';
+      Map<String, dynamic> fields;
+      if (result == -1) {
+        fields = {'${fieldPrefix}_user_id': null, '${fieldPrefix}_time': null};
+      } else {
+        fields = {'${fieldPrefix}_user_id': result};
+      }
+      api.updateAssignment(date: date, fields: fields).then((_) {
+        ref.invalidate(weekProvider);
+      });
     }
   }
 }

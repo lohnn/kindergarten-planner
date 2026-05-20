@@ -243,14 +243,32 @@ class _DayModalContentState extends State<_DayModalContent> {
       await api.updateLocation(widget.day.date, entry.key, entry.value);
     }
 
-    // Update assignments
-    await api.updateAssignment(
-      date: widget.day.date,
-      dropoffUserId: _dropoffUserId,
-      dropoffTime: _dropoffTime != null ? _formatTime(_dropoffTime!) : null,
-      pickupUserId: _pickupUserId,
-      pickupTime: _pickupTime != null ? _formatTime(_pickupTime!) : null,
-    );
+    // Update assignments — only send changed fields
+    final Map<String, dynamic> assignmentFields = {};
+
+    final origDropoffUserId = widget.day.dropoff?.userId;
+    final origDropoffTime = widget.day.dropoff?.time;
+    final origPickupUserId = widget.day.pickup?.userId;
+    final origPickupTime = widget.day.pickup?.time;
+
+    if (_dropoffUserId != origDropoffUserId) {
+      assignmentFields['dropoff_user_id'] = _dropoffUserId;
+    }
+    final newDropoffTime = _dropoffTime != null ? _formatTime(_dropoffTime!) : null;
+    if (newDropoffTime != origDropoffTime) {
+      assignmentFields['dropoff_time'] = newDropoffTime;
+    }
+    if (_pickupUserId != origPickupUserId) {
+      assignmentFields['pickup_user_id'] = _pickupUserId;
+    }
+    final newPickupTime = _pickupTime != null ? _formatTime(_pickupTime!) : null;
+    if (newPickupTime != origPickupTime) {
+      assignmentFields['pickup_time'] = newPickupTime;
+    }
+
+    if (assignmentFields.isNotEmpty) {
+      await api.updateAssignment(date: widget.day.date, fields: assignmentFields);
+    }
 
     widget.ref.invalidate(weekProvider);
     if (mounted) Navigator.of(context).pop();
