@@ -2,10 +2,10 @@ const express = require('express');
 const router = express.Router();
 const db = require('../db');
 
-// PUT /api/assignments/:date
+// PUT /api/assignments/:date — partial update support
 router.put('/:date', (req, res) => {
   const { date } = req.params;
-  const { dropoff_user_id, dropoff_time, pickup_user_id, pickup_time } = req.body;
+  const body = req.body;
 
   // Validate optional user references exist
   const validateUser = (id) => {
@@ -14,8 +14,37 @@ router.put('/:date', (req, res) => {
     return !!user;
   };
 
-  if (!validateUser(dropoff_user_id) || !validateUser(pickup_user_id)) {
+  if ('dropoff_user_id' in body && !validateUser(body.dropoff_user_id)) {
     return res.status(400).json({ error: 'Invalid user_id reference' });
+  }
+  if ('pickup_user_id' in body && !validateUser(body.pickup_user_id)) {
+    return res.status(400).json({ error: 'Invalid user_id reference' });
+  }
+
+  // Get existing assignment
+  const existing = db.prepare('SELECT * FROM assignments WHERE date = ?').get(date) || {
+    dropoff_user_id: null, dropoff_time: null, pickup_user_id: null, pickup_time: null
+  };
+
+  // Merge: use request value if key present, otherwise keep existing
+  const field = (key) => key in body ? body[key] : existing[key];
+
+  let dropoff_user_id = field('dropoff_user_id');
+  let dropoff_time = field('dropoff_time');
+  let pickup_user_id = field('pickup_user_id');
+  let pickup_time = field('pickup_time');
+
+  // Auto-fill defaults: if user is being set and time is null, use default
+  const getSetting = (key) => {
+    const row = db.prepare('SELECT value FROM settings WHERE key = ?').get(key);
+    return row ? row.value : null;
+  };
+
+  if (dropoff_user_id != null && dropoff_time == null) {
+    dropoff_time = getSetting('default_dropoff_time');
+  }
+  if (pickup_user_id != null && pickup_time == null) {
+    pickup_time = getSetting('default_pickup_time');
   }
 
   db.prepare(`
@@ -26,13 +55,7 @@ router.put('/:date', (req, res) => {
       dropoff_time    = excluded.dropoff_time,
       pickup_user_id  = excluded.pickup_user_id,
       pickup_time     = excluded.pickup_time
-  `).run(
-    date,
-    dropoff_user_id ?? null,
-    dropoff_time ?? null,
-    pickup_user_id ?? null,
-    pickup_time ?? null
-  );
+  `).run(date, dropoff_user_id ?? null, dropoff_time ?? null, pickup_user_id ?? null, pickup_time ?? null);
 
   const assignment = db.prepare('SELECT * FROM assignments WHERE date = ?').get(date);
   res.json(assignment);

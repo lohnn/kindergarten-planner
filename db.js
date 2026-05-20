@@ -23,6 +23,11 @@ db.exec(`
     FOREIGN KEY(user_id) REFERENCES users(id)
   );
 
+  CREATE TABLE IF NOT EXISTS settings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+  );
+
   CREATE TABLE IF NOT EXISTS assignments (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     date TEXT NOT NULL UNIQUE,
@@ -48,5 +53,10 @@ if (!userCols.includes('type')) {
 const insertUser = db.prepare('INSERT OR IGNORE INTO users (id, name, type) VALUES (?, ?, ?)');
 insertUser.run(1, 'Person A', 'primary');
 insertUser.run(2, 'Person B', 'primary');
+
+// Seed default settings
+const insertSetting = db.prepare('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)');
+insertSetting.run('default_dropoff_time', '08:00');
+insertSetting.run('default_pickup_time', '15:00');
 
 module.exports = db;

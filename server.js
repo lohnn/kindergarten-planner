@@ -21,6 +21,7 @@ app.use('/api/weeks', require('./routes/weeks'));
 app.use('/api/days', require('./routes/days'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/assignments', require('./routes/assignments'));
+app.use('/api/settings', require('./routes/settings'));
 
 // Static files — serve Flutter web build, fall back to dist/ or public/
 const fs = require('fs');
