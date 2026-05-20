@@ -31,8 +31,7 @@ const staticDir = fs.existsSync(flutterDir) ? flutterDir
   : path.join(__dirname, 'public');
 app.use(express.static(staticDir));
 // SPA fallback — serve index.html for non-API routes
-app.use((req, res, next) => {
-  if (req.path.startsWith('/api')) return next();
+app.get('/{*splat}', (req, res) => {
   res.sendFile(path.join(staticDir, 'index.html'));
 });
 

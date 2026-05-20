@@ -40,7 +40,10 @@ async function main() {
 
     const variants = [
       { width: 390, theme: 'light' },
+      { width: 390, theme: 'dark' },
       { width: 768, theme: 'light' },
+      { width: 768, theme: 'dark' },
+      { width: 1024, theme: 'light' },
       { width: 1024, theme: 'dark' },
     ];
 
