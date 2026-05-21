@@ -23,13 +23,16 @@ class AppHeader extends ConsumerWidget {
       ),
       child: Row(
         children: [
-          Text(
-            '🏫 Kindergarten Planner',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+          Flexible(
+            child: Text(
+              '🏫 Kindergarten Planner',
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+            ),
           ),
-          const Spacer(),
+          const SizedBox(width: 8),
           usersAsync.when(
             data: (users) => _UserToggle(
               users: users.where((u) => u.isPrimary).toList(),
@@ -77,7 +80,6 @@ class _UserToggle extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Text('I am: ', style: TextStyle(color: ext.textMuted, fontSize: 13)),
-        const SizedBox(width: 4),
         ...users.map((user) {
           final isA = users.indexOf(user) == 0;
           final color = isA ? ext.colorA : ext.colorB;
