@@ -9,6 +9,7 @@ class ApiService {
   );
 
   String get baseUrl => _baseUrl;
+  static String get staticBaseUrl => _baseUrl;
 
   Future<Map<String, dynamic>> getWeek(int year, int week) async {
     final response = await http.get(Uri.parse('$baseUrl/weeks/$year/$week'));
