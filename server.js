@@ -16,6 +16,11 @@ app.use((req, res, next) => {
   next();
 });
 
+// Health check
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
 // Routes
 app.use('/api/weeks', require('./routes/weeks'));
 app.use('/api/days', require('./routes/days'));
