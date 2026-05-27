@@ -19,7 +19,9 @@ router.put('/:date/user/:userId', (req, res) => {
     return res.status(400).json({ error: 'work_location must be "home", "office", or "unknown"' });
   }
 
-  db.prepare('INSERT OR IGNORE INTO days (date, user_id) VALUES (?, ?)').run(date, user.id);
+  db.prepare(
+    'INSERT OR IGNORE INTO days (date, user_id, work_location) VALUES (?, ?, ?)'
+  ).run(date, user.id, 'unknown');
   db.prepare('UPDATE days SET work_location = ? WHERE date = ? AND user_id = ?').run(work_location, date, user.id);
 
   const row = db.prepare('SELECT * FROM days WHERE date = ? AND user_id = ?').get(date, user.id);

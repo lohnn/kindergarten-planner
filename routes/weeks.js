@@ -41,10 +41,12 @@ router.get('/:year/:week', (req, res) => {
   for (const u of allUsers) userMap[u.id] = u;
 
   // Ensure day rows exist for primary users only
-  const upsertDay = db.prepare('INSERT OR IGNORE INTO days (date, user_id) VALUES (?, ?)');
+  const upsertDay = db.prepare(
+    'INSERT OR IGNORE INTO days (date, user_id, work_location) VALUES (?, ?, ?)'
+  );
   for (const date of dates) {
     for (const user of primaryUsers) {
-      upsertDay.run(date, user.id);
+      upsertDay.run(date, user.id, 'unknown');
     }
   }
 
@@ -88,6 +90,7 @@ router.get('/:year/:week', (req, res) => {
         name: r.name,
         work_location: r.work_location
       })),
+      note: assignment?.note ?? null,
       dropoff: dropoffUser,
       pickup: pickupUser
     };

@@ -78,6 +78,8 @@ class AppColorsExtension extends ThemeExtension<AppColorsExtension> {
   final Color locHomeBg;
   final Color locOffice;
   final Color locOfficeBg;
+  final Color locUnknown;
+  final Color locUnknownBg;
   final Color bg;
 
   const AppColorsExtension({
@@ -99,6 +101,8 @@ class AppColorsExtension extends ThemeExtension<AppColorsExtension> {
     required this.locHomeBg,
     required this.locOffice,
     required this.locOfficeBg,
+    required this.locUnknown,
+    required this.locUnknownBg,
     required this.bg,
   });
 
@@ -121,6 +125,8 @@ class AppColorsExtension extends ThemeExtension<AppColorsExtension> {
         locHomeBg = AppColors.lightLocHomeBg,
         locOffice = AppColors.lightLocOffice,
         locOfficeBg = AppColors.lightLocOfficeBg,
+        locUnknown = AppColors.lightLocUnknown,
+        locUnknownBg = AppColors.lightLocUnknownBg,
         bg = AppColors.lightBg;
 
   const AppColorsExtension.dark()
@@ -142,6 +148,8 @@ class AppColorsExtension extends ThemeExtension<AppColorsExtension> {
         locHomeBg = AppColors.darkLocHomeBg,
         locOffice = AppColors.darkLocOffice,
         locOfficeBg = AppColors.darkLocOfficeBg,
+        locUnknown = AppColors.darkLocUnknown,
+        locUnknownBg = AppColors.darkLocUnknownBg,
         bg = AppColors.darkBg;
 
   @override
@@ -164,6 +172,8 @@ class AppColorsExtension extends ThemeExtension<AppColorsExtension> {
     Color? locHomeBg,
     Color? locOffice,
     Color? locOfficeBg,
+    Color? locUnknown,
+    Color? locUnknownBg,
     Color? bg,
   }) {
     return AppColorsExtension(
@@ -185,6 +195,8 @@ class AppColorsExtension extends ThemeExtension<AppColorsExtension> {
       locHomeBg: locHomeBg ?? this.locHomeBg,
       locOffice: locOffice ?? this.locOffice,
       locOfficeBg: locOfficeBg ?? this.locOfficeBg,
+      locUnknown: locUnknown ?? this.locUnknown,
+      locUnknownBg: locUnknownBg ?? this.locUnknownBg,
       bg: bg ?? this.bg,
     );
   }
@@ -214,6 +226,8 @@ class AppColorsExtension extends ThemeExtension<AppColorsExtension> {
       locHomeBg: Color.lerp(locHomeBg, other.locHomeBg, t)!,
       locOffice: Color.lerp(locOffice, other.locOffice, t)!,
       locOfficeBg: Color.lerp(locOfficeBg, other.locOfficeBg, t)!,
+      locUnknown: Color.lerp(locUnknown, other.locUnknown, t)!,
+      locUnknownBg: Color.lerp(locUnknownBg, other.locUnknownBg, t)!,
       bg: Color.lerp(bg, other.bg, t)!,
     );
   }

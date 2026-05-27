@@ -24,6 +24,7 @@ class DayHeader extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final ext = Theme.of(context).extension<AppColorsExtension>()!;
+    final hasNote = day?.note?.trim().isNotEmpty == true;
     return GestureDetector(
       onTap: day != null ? () => _showDayModal(context, ref) : null,
       child: Container(
@@ -56,6 +57,15 @@ class DayHeader extends ConsumerWidget {
               date,
               style: TextStyle(fontSize: 11, color: ext.textMuted),
             ),
+            if (hasNote)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Icon(
+                  Icons.sticky_note_2_outlined,
+                  size: 14,
+                  color: ext.textMuted,
+                ),
+              ),
           ],
         ),
       ),
@@ -96,6 +106,7 @@ class _DayModalContentState extends State<_DayModalContent> {
   TimeOfDay? _dropoffTime;
   int? _pickupUserId;
   TimeOfDay? _pickupTime;
+  late final TextEditingController _noteController;
 
   @override
   void initState() {
@@ -105,6 +116,13 @@ class _DayModalContentState extends State<_DayModalContent> {
     _dropoffTime = _parseTime(widget.day.dropoff?.time);
     _pickupUserId = widget.day.pickup?.userId;
     _pickupTime = _parseTime(widget.day.pickup?.time);
+    _noteController = TextEditingController(text: widget.day.note ?? '');
+  }
+
+  @override
+  void dispose() {
+    _noteController.dispose();
+    super.dispose();
   }
 
   TimeOfDay? _parseTime(String? t) {
@@ -137,6 +155,19 @@ class _DayModalContentState extends State<_DayModalContent> {
           Text(
             widget.day.date,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _noteController,
+            minLines: 2,
+            maxLines: 4,
+            textInputAction: TextInputAction.newline,
+            decoration: const InputDecoration(
+              labelText: 'Note',
+              hintText: 'Remember to take the kid to the doctor.',
+              alignLabelWithHint: true,
+              border: OutlineInputBorder(),
+            ),
           ),
           const SizedBox(height: 16),
           // Location selectors
@@ -175,7 +206,7 @@ class _DayModalContentState extends State<_DayModalContent> {
             segments: const [
               ButtonSegment(value: 'home', label: Text('🏠')),
               ButtonSegment(value: 'office', label: Text('🏢')),
-              ButtonSegment(value: 'unknown', label: Text('❓')),
+              ButtonSegment(value: 'unknown', label: Text('—')),
             ],
             selected: {loc},
             onSelectionChanged: (v) => setState(() => _locations[user.id] = v.first),
@@ -240,7 +271,10 @@ class _DayModalContentState extends State<_DayModalContent> {
 
     // Update locations
     for (final entry in _locations.entries) {
-      await api.updateLocation(widget.day.date, entry.key, entry.value);
+      final originalValue = widget.day.locations[entry.key] ?? 'unknown';
+      if (entry.value != originalValue) {
+        await api.updateLocation(widget.day.date, entry.key, entry.value);
+      }
     }
 
     // Update assignments — only send changed fields
@@ -264,6 +298,13 @@ class _DayModalContentState extends State<_DayModalContent> {
     final newPickupTime = _pickupTime != null ? _formatTime(_pickupTime!) : null;
     if (newPickupTime != origPickupTime) {
       assignmentFields['pickup_time'] = newPickupTime;
+    }
+
+    final originalNote = widget.day.note?.trim();
+    final trimmedNote = _noteController.text.trim();
+    final newNote = trimmedNote.isEmpty ? null : trimmedNote;
+    if (newNote != originalNote) {
+      assignmentFields['note'] = newNote;
     }
 
     if (assignmentFields.isNotEmpty) {

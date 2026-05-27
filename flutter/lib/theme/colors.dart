@@ -60,10 +60,14 @@ class AppColors {
   static const lightLocHomeBg = Color(0xFFDCFCE7);
   static const lightLocOffice = Color(0xFFB91C1C);
   static const lightLocOfficeBg = Color(0xFFFEE2E2);
+  static const lightLocUnknown = Color(0xFF6B7280);
+  static const lightLocUnknownBg = Color(0xFFF3F4F6);
 
   // Location state colors - dark
   static const darkLocHome = Color(0xFF4ADE80);
   static const darkLocHomeBg = Color(0xFF064E3B);
   static const darkLocOffice = Color(0xFFD4A0A0);
   static const darkLocOfficeBg = Color(0xFF3B1515);
+  static const darkLocUnknown = Color(0xFF9CA3AF);
+  static const darkLocUnknownBg = Color(0xFF1F2937);
 }

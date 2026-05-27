@@ -67,7 +67,7 @@ A self-hosted web app for two adults to coordinate kindergarten drop-off and pic
 |--------|------|-------------|
 | GET | `/api/weeks/:year/:week` | Full week data — days, work locations, assignments, conflicts, users |
 | PUT | `/api/days/:date/user/:userId` | Set work location. Body: `{ work_location: "home"\|"office"\|"unknown" }` |
-| PUT | `/api/assignments/:date` | Partial upsert. Send only changed fields: `{ dropoff_user_id?, dropoff_time?, pickup_user_id?, pickup_time? }`. Auto-fills default times when a user is set without a time. |
+| PUT | `/api/assignments/:date` | Partial upsert. Send only changed fields: `{ dropoff_user_id?, dropoff_time?, pickup_user_id?, pickup_time?, note? }`. Omitted fields keep their existing values; assigning a user without a time auto-fills the default time. |
 | GET | `/api/users` | List all users |
 | POST | `/api/users` | Create occasional user. Body: `{ name, type: "occasional" }` |
 | PUT | `/api/users/:id` | Rename user. Body: `{ name }` |

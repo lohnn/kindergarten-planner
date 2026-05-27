@@ -26,7 +26,7 @@ db.exec(`
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     date TEXT NOT NULL,
     user_id INTEGER NOT NULL,
-    work_location TEXT NOT NULL DEFAULT 'home',
+    work_location TEXT NOT NULL DEFAULT 'unknown',
     UNIQUE(date, user_id),
     FOREIGN KEY(user_id) REFERENCES users(id)
   );
@@ -37,6 +37,7 @@ db.exec(`
     dropoff_time TEXT,
     pickup_user_id INTEGER,
     pickup_time TEXT,
+    note TEXT,
     FOREIGN KEY(dropoff_user_id) REFERENCES users(id),
     FOREIGN KEY(pickup_user_id) REFERENCES users(id)
   );
@@ -76,18 +77,18 @@ for (const loc of locations) {
 
 // Assignments
 const insertAssignment = db.prepare(
-  'INSERT INTO assignments (date, dropoff_user_id, dropoff_time, pickup_user_id, pickup_time) VALUES (?, ?, ?, ?, ?)'
+  'INSERT INTO assignments (date, dropoff_user_id, dropoff_time, pickup_user_id, pickup_time, note) VALUES (?, ?, ?, ?, ?, ?)'
 );
 // Mon: Mama drops off, Papa picks up
-insertAssignment.run(dates[0], 1, '08:00', 2, '15:30');
+insertAssignment.run(dates[0], 1, '08:00', 2, '15:30', null);
 // Tue: Papa drops off, Mama picks up
-insertAssignment.run(dates[1], 2, '08:15', 1, '15:00');
+insertAssignment.run(dates[1], 2, '08:15', 1, '15:00', null);
 // Wed: Mama drops off, Oma picks up
-insertAssignment.run(dates[2], 1, '08:00', 3, '14:00');
+insertAssignment.run(dates[2], 1, '08:00', 3, '14:00', null);
 // Thu: CONFLICT - nobody assigned for either (both at office, forgot to plan)
-insertAssignment.run(dates[3], null, null, null, null);
+insertAssignment.run(dates[3], null, null, null, null, 'Remember to take the kid to the doctor.');
 // Fri: Papa drops off, Mama picks up
-insertAssignment.run(dates[4], 2, '08:30', 1, '15:00');
+insertAssignment.run(dates[4], 2, '08:30', 1, '15:00', null);
 
 db.close();
 console.log('Database seeded successfully for week 21/2026');

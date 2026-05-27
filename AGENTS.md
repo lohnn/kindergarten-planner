@@ -101,7 +101,7 @@ Compare `flutter/test/golden/goldens/` against `snapshots/output/` to check desi
 ```sql
 users        (id, name, type)                          -- type: 'primary' | 'occasional'
 days         (id, date, user_id, work_location)        -- work_location: 'home' | 'office' | 'unknown'
-assignments  (id, date, dropoff_user_id, dropoff_time, pickup_user_id, pickup_time)
+assignments  (id, date, dropoff_user_id, dropoff_time, pickup_user_id, pickup_time, note)
 settings     (key, value)                              -- default_dropoff_time, default_pickup_time
 ```
 

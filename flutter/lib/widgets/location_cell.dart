@@ -23,6 +23,7 @@ class LocationCell extends ConsumerWidget {
 
     String icon;
     String label;
+    Color backgroundColor;
     Color borderColor;
     final bool isUnknown = location == 'unknown' || location.isEmpty;
 
@@ -30,17 +31,20 @@ class LocationCell extends ConsumerWidget {
       case 'home':
         icon = '🏠';
         label = 'WFH';
+        backgroundColor = ext.locHomeBg;
         borderColor = ext.locHome;
         break;
       case 'office':
         icon = '🏢';
         label = 'Office';
+        backgroundColor = ext.locOfficeBg;
         borderColor = ext.locOffice;
         break;
       default:
-        icon = '?';
+        icon = '—';
         label = 'Unknown';
-        borderColor = ext.border;
+        backgroundColor = ext.locUnknownBg;
+        borderColor = ext.locUnknown;
     }
 
     return GestureDetector(
@@ -50,11 +54,11 @@ class LocationCell extends ConsumerWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 4),
           decoration: BoxDecoration(
-            color: isToday ? ext.todayColBg : ext.bg,
+            color: isToday ? ext.todayColBg : backgroundColor,
             border: isUnknown
                 ? Border.all(
-                    color: ext.border,
-                    width: 2,
+                    color: borderColor,
+                    width: 1.5,
                     strokeAlign: BorderSide.strokeAlignInside,
                   )
                 : Border(
@@ -63,7 +67,7 @@ class LocationCell extends ConsumerWidget {
             borderRadius: isUnknown ? BorderRadius.circular(4) : null,
           ),
           child: Opacity(
-            opacity: isUnknown ? 0.7 : 1.0,
+            opacity: isUnknown ? 0.9 : 1.0,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -71,7 +75,10 @@ class LocationCell extends ConsumerWidget {
                 const SizedBox(height: 2),
                 Text(
                   label,
-                  style: TextStyle(fontSize: 10, color: ext.textMuted),
+                  style: TextStyle(
+                    fontSize: 10,
+                    color: isUnknown ? borderColor : ext.textMuted,
+                  ),
                 ),
               ],
             ),
@@ -88,7 +95,7 @@ class LocationCell extends ConsumerWidget {
       items: const [
         PopupMenuItem(value: 'home', child: Text('🏠 Home')),
         PopupMenuItem(value: 'office', child: Text('🏢 Office')),
-        PopupMenuItem(value: 'unknown', child: Text('❓ Unknown')),
+        PopupMenuItem(value: 'unknown', child: Text('— Unknown')),
       ],
     );
     if (result != null && result != location) {

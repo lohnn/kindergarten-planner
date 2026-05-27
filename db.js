@@ -18,7 +18,7 @@ db.exec(`
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     date TEXT NOT NULL,
     user_id INTEGER NOT NULL,
-    work_location TEXT NOT NULL DEFAULT 'home',
+    work_location TEXT NOT NULL DEFAULT 'unknown',
     UNIQUE(date, user_id),
     FOREIGN KEY(user_id) REFERENCES users(id)
   );
@@ -35,6 +35,7 @@ db.exec(`
     dropoff_time TEXT,
     pickup_user_id INTEGER,
     pickup_time TEXT,
+    note TEXT,
     FOREIGN KEY(dropoff_user_id) REFERENCES users(id),
     FOREIGN KEY(pickup_user_id) REFERENCES users(id)
   );
@@ -48,6 +49,34 @@ if (!userCols.includes('type')) {
 
 // Migration: handle old days table that may have dropoff/pickup columns
 // (we just leave extra columns — SQLite ignores them harmlessly)
+
+// Migration: rebuild days table if its default is still 'home'
+const dayCols = db.pragma('table_info(days)');
+const workLocationCol = dayCols.find(c => c.name === 'work_location');
+if (workLocationCol?.dflt_value === "'home'") {
+  db.exec(`
+    BEGIN;
+    ALTER TABLE days RENAME TO days_old;
+    CREATE TABLE days (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      date TEXT NOT NULL,
+      user_id INTEGER NOT NULL,
+      work_location TEXT NOT NULL DEFAULT 'unknown',
+      UNIQUE(date, user_id),
+      FOREIGN KEY(user_id) REFERENCES users(id)
+    );
+    INSERT INTO days (id, date, user_id, work_location)
+    SELECT id, date, user_id, work_location FROM days_old;
+    DROP TABLE days_old;
+    COMMIT;
+  `);
+}
+
+// Migration: add note column to assignments if missing
+const assignmentCols = db.pragma('table_info(assignments)').map(c => c.name);
+if (!assignmentCols.includes('note')) {
+  db.exec(`ALTER TABLE assignments ADD COLUMN note TEXT`);
+}
 
 // Seed primary users if not present
 const insertUser = db.prepare('INSERT OR IGNORE INTO users (id, name, type) VALUES (?, ?, ?)');

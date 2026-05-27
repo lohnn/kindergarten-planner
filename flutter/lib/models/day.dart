@@ -4,6 +4,7 @@ class Day {
   final Map<int, String> locations; // userId -> home|office|unknown
   final Assignment? dropoff;
   final Assignment? pickup;
+  final String? note;
 
   const Day({
     required this.date,
@@ -11,6 +12,7 @@ class Day {
     required this.locations,
     this.dropoff,
     this.pickup,
+    this.note,
   });
 
   factory Day.fromJson(Map<String, dynamic> json) {
@@ -33,6 +35,7 @@ class Day {
       pickup: json['pickup'] != null
           ? Assignment.fromJson(json['pickup'] as Map<String, dynamic>)
           : null,
+      note: (json['note'] as String?)?.trim().isEmpty == true ? null : json['note'] as String?,
     );
   }
 

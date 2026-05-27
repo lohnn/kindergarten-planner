@@ -23,7 +23,7 @@ router.put('/:date', (req, res) => {
 
   // Get existing assignment
   const existing = db.prepare('SELECT * FROM assignments WHERE date = ?').get(date) || {
-    dropoff_user_id: null, dropoff_time: null, pickup_user_id: null, pickup_time: null
+    dropoff_user_id: null, dropoff_time: null, pickup_user_id: null, pickup_time: null, note: null
   };
 
   // Merge: use request value if key present, otherwise keep existing
@@ -33,6 +33,7 @@ router.put('/:date', (req, res) => {
   let dropoff_time = field('dropoff_time');
   let pickup_user_id = field('pickup_user_id');
   let pickup_time = field('pickup_time');
+  let note = field('note');
 
   // Auto-fill defaults: if user is being set and time is null, use default
   const getSetting = (key) => {
@@ -48,14 +49,15 @@ router.put('/:date', (req, res) => {
   }
 
   db.prepare(`
-    INSERT INTO assignments (date, dropoff_user_id, dropoff_time, pickup_user_id, pickup_time)
-    VALUES (?, ?, ?, ?, ?)
+    INSERT INTO assignments (date, dropoff_user_id, dropoff_time, pickup_user_id, pickup_time, note)
+    VALUES (?, ?, ?, ?, ?, ?)
     ON CONFLICT(date) DO UPDATE SET
       dropoff_user_id = excluded.dropoff_user_id,
       dropoff_time    = excluded.dropoff_time,
       pickup_user_id  = excluded.pickup_user_id,
-      pickup_time     = excluded.pickup_time
-  `).run(date, dropoff_user_id ?? null, dropoff_time ?? null, pickup_user_id ?? null, pickup_time ?? null);
+      pickup_time     = excluded.pickup_time,
+      note            = excluded.note
+  `).run(date, dropoff_user_id ?? null, dropoff_time ?? null, pickup_user_id ?? null, pickup_time ?? null, note ?? null);
 
   const assignment = db.prepare('SELECT * FROM assignments WHERE date = ?').get(date);
   res.json(assignment);
