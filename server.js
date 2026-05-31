@@ -1,5 +1,6 @@
 const express = require('express');
 const path = require('path');
+const events = require('./events');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -19,6 +20,36 @@ app.use((req, res, next) => {
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// SSE realtime stream — see events.js for the event contract.
+// Registered before the static/SPA-fallback handlers so it is never swallowed.
+app.get('/api/events', (req, res) => {
+  // SSE headers. The CORS Allow-Origin header set above is preserved.
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no'); // disable proxy buffering if present
+  res.flushHeaders?.();
+
+  // Initial comment so the client knows the stream is open.
+  res.write(': connected\n\n');
+
+  events.addClient(res);
+
+  // Periodic keep-alive comment to survive idle-connection timeouts in proxies.
+  const keepAlive = setInterval(() => {
+    try {
+      res.write(': keep-alive\n\n');
+    } catch (err) {
+      clearInterval(keepAlive);
+    }
+  }, events.KEEPALIVE_MS);
+
+  req.on('close', () => {
+    clearInterval(keepAlive);
+    events.removeClient(res);
+  });
 });
 
 // Routes

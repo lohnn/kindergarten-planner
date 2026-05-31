@@ -2,11 +2,40 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kinder_planner/models/week.dart';
+import 'package:kinder_planner/providers/realtime_provider.dart';
 import 'package:kinder_planner/providers/week_provider.dart';
+import 'package:kinder_planner/services/realtime_service.dart';
 import 'package:kinder_planner/screens/home_screen.dart';
 import 'package:kinder_planner/theme/app_theme.dart';
 
 import 'mock_week_data.dart';
+
+/// Test double for [weekProvider]: serves fixed [Week] data, no network.
+class _MockWeekNotifier extends WeekNotifier {
+  _MockWeekNotifier(this._data);
+  final Week _data;
+
+  @override
+  Future<Week> build() async => _data;
+}
+
+/// Test double for [currentWeekIndexProvider]: fixed (year, week).
+class _MockWeekIndexNotifier extends CurrentWeekIndexNotifier {
+  _MockWeekIndexNotifier(this._value);
+  final (int, int) _value;
+
+  @override
+  (int, int) build() => _value;
+}
+
+/// No-op realtime service for tests. Under the test VM the [RealtimeService]
+/// factory already resolves to the platform stub (no browser EventSource), so
+/// this just builds one with empty callbacks.
+RealtimeService _noopRealtimeService() => RealtimeService(
+      baseUrl: '/api',
+      onEvent: (_) {},
+      onResync: () async {},
+    );
 
 /// Screen sizes to test.
 const _sizes = <String, Size>{
@@ -62,8 +91,10 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
-            weekProvider.overrideWith((ref) async => weekData),
-            currentWeekIndexProvider.overrideWith((ref) => (2026, 21)),
+            weekProvider.overrideWith(() => _MockWeekNotifier(weekData)),
+            currentWeekIndexProvider
+                .overrideWith(() => _MockWeekIndexNotifier((2026, 21))),
+            realtimeProvider.overrideWithValue(_noopRealtimeService()),
           ],
           child: MaterialApp(
             debugShowCheckedModeBanner: false,

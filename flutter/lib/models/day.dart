@@ -42,6 +42,27 @@ class Day {
   static int _dayOfWeekFromDate(String date) {
     return DateTime.parse(date).weekday;
   }
+
+  Day copyWith({
+    String? date,
+    int? dayOfWeek,
+    Map<int, String>? locations,
+    Object? dropoff = _sentinel,
+    Object? pickup = _sentinel,
+    Object? note = _sentinel,
+  }) {
+    return Day(
+      date: date ?? this.date,
+      dayOfWeek: dayOfWeek ?? this.dayOfWeek,
+      locations: locations ?? this.locations,
+      dropoff: identical(dropoff, _sentinel) ? this.dropoff : dropoff as Assignment?,
+      pickup: identical(pickup, _sentinel) ? this.pickup : pickup as Assignment?,
+      note: identical(note, _sentinel) ? this.note : note as String?,
+    );
+  }
+
+  /// Sentinel so copyWith can distinguish "not passed" from "explicitly null".
+  static const Object _sentinel = Object();
 }
 
 class Assignment {

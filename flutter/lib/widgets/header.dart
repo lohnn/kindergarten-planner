@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../providers/active_user_provider.dart';
-import '../providers/health_provider.dart';
 import '../providers/users_provider.dart';
 import '../models/user.dart';
 import '../screens/settings_screen.dart';
 import '../theme/app_theme.dart';
+import 'sync_status_indicator.dart';
 
 class AppHeader extends ConsumerWidget {
   const AppHeader({super.key});
@@ -40,13 +40,13 @@ class AppHeader extends ConsumerWidget {
               activeUserId: activeUserId,
               ext: ext,
               onSelect: (id) =>
-                  ref.read(activeUserProvider.notifier).state = id,
+                  ref.read(activeUserProvider.notifier).set(id),
             ),
             loading: () => const SizedBox(width: 100),
             error: (_, __) => const Text('Error'),
           ),
           const SizedBox(width: 8),
-          const _HealthDot(),
+          const SyncStatusIndicator(),
           const SizedBox(width: 8),
           IconButton(
             icon: Icon(Icons.settings, color: ext.textMuted, size: 20),
@@ -112,33 +112,6 @@ class _UserToggle extends StatelessWidget {
           );
         }),
       ],
-    );
-  }
-}
-
-class _HealthDot extends ConsumerWidget {
-  const _HealthDot();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final health = ref.watch(healthProvider);
-    final color = health.when(
-      data: (ok) => ok ? const Color(0xFF4CAF50) : const Color(0xFFF44336),
-      loading: () => Colors.grey,
-      error: (_, __) => const Color(0xFFF44336),
-    );
-    final tooltip = health.when(
-      data: (ok) => ok ? 'Connected' : 'Disconnected',
-      loading: () => 'Checking…',
-      error: (_, __) => 'Disconnected',
-    );
-    return Tooltip(
-      message: tooltip,
-      child: Container(
-        width: 8,
-        height: 8,
-        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-      ),
     );
   }
 }

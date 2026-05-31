@@ -63,6 +63,13 @@ class AppColors {
   static const lightLocUnknown = Color(0xFF6B7280);
   static const lightLocUnknownBg = Color(0xFFF3F4F6);
 
+  // Connection / realtime sync state - light
+  // Distinct from identity (blue/fuchsia) and WFH/office (green/red):
+  // teal = live, amber = reconnecting, neutral grey = paused.
+  static const lightSyncLive = Color(0xFF0D9488); // teal-600
+  static const lightSyncReconnecting = Color(0xFFB45309); // amber-700
+  static const lightSyncPaused = Color(0xFF9CA3AF); // grey-400
+
   // Location state colors - dark
   static const darkLocHome = Color(0xFF4ADE80);
   static const darkLocHomeBg = Color(0xFF064E3B);
@@ -70,4 +77,11 @@ class AppColors {
   static const darkLocOfficeBg = Color(0xFF3B1515);
   static const darkLocUnknown = Color(0xFF9CA3AF);
   static const darkLocUnknownBg = Color(0xFF1F2937);
+
+  // Connection / realtime sync state - dark
+  // Independently designed (W-004): brighter, lower-saturation tones tuned
+  // to read on the dark surface rather than darkened light values.
+  static const darkSyncLive = Color(0xFF2DD4BF); // teal-400
+  static const darkSyncReconnecting = Color(0xFFFBBF24); // amber-400
+  static const darkSyncPaused = Color(0xFF6B7280); // grey-500
 }

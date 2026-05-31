@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
+const events = require('../events');
 
 // GET /api/settings
 router.get('/', (req, res) => {
@@ -19,6 +20,8 @@ router.put('/', (req, res) => {
   const rows = db.prepare('SELECT key, value FROM settings').all();
   const settings = {};
   for (const row of rows) settings[row.key] = row.value;
+  // Broadcast the full settings map to other connected clients.
+  events.broadcast('settings', settings);
   res.json(settings);
 });
 

@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
+const events = require('../events');
 
 // PUT /api/assignments/:date — partial update support
 router.put('/:date', (req, res) => {
@@ -60,6 +61,8 @@ router.put('/:date', (req, res) => {
   `).run(date, dropoff_user_id ?? null, dropoff_time ?? null, pickup_user_id ?? null, pickup_time ?? null, note ?? null);
 
   const assignment = db.prepare('SELECT * FROM assignments WHERE date = ?').get(date);
+  // Broadcast the changed record to other connected clients (date locates the cell).
+  events.broadcast('assignment', assignment);
   res.json(assignment);
 });
 

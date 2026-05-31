@@ -80,6 +80,9 @@ class AppColorsExtension extends ThemeExtension<AppColorsExtension> {
   final Color locOfficeBg;
   final Color locUnknown;
   final Color locUnknownBg;
+  final Color syncLive;
+  final Color syncReconnecting;
+  final Color syncPaused;
   final Color bg;
 
   const AppColorsExtension({
@@ -103,6 +106,9 @@ class AppColorsExtension extends ThemeExtension<AppColorsExtension> {
     required this.locOfficeBg,
     required this.locUnknown,
     required this.locUnknownBg,
+    required this.syncLive,
+    required this.syncReconnecting,
+    required this.syncPaused,
     required this.bg,
   });
 
@@ -127,6 +133,9 @@ class AppColorsExtension extends ThemeExtension<AppColorsExtension> {
         locOfficeBg = AppColors.lightLocOfficeBg,
         locUnknown = AppColors.lightLocUnknown,
         locUnknownBg = AppColors.lightLocUnknownBg,
+        syncLive = AppColors.lightSyncLive,
+        syncReconnecting = AppColors.lightSyncReconnecting,
+        syncPaused = AppColors.lightSyncPaused,
         bg = AppColors.lightBg;
 
   const AppColorsExtension.dark()
@@ -150,6 +159,9 @@ class AppColorsExtension extends ThemeExtension<AppColorsExtension> {
         locOfficeBg = AppColors.darkLocOfficeBg,
         locUnknown = AppColors.darkLocUnknown,
         locUnknownBg = AppColors.darkLocUnknownBg,
+        syncLive = AppColors.darkSyncLive,
+        syncReconnecting = AppColors.darkSyncReconnecting,
+        syncPaused = AppColors.darkSyncPaused,
         bg = AppColors.darkBg;
 
   @override
@@ -174,6 +186,9 @@ class AppColorsExtension extends ThemeExtension<AppColorsExtension> {
     Color? locOfficeBg,
     Color? locUnknown,
     Color? locUnknownBg,
+    Color? syncLive,
+    Color? syncReconnecting,
+    Color? syncPaused,
     Color? bg,
   }) {
     return AppColorsExtension(
@@ -197,6 +212,9 @@ class AppColorsExtension extends ThemeExtension<AppColorsExtension> {
       locOfficeBg: locOfficeBg ?? this.locOfficeBg,
       locUnknown: locUnknown ?? this.locUnknown,
       locUnknownBg: locUnknownBg ?? this.locUnknownBg,
+      syncLive: syncLive ?? this.syncLive,
+      syncReconnecting: syncReconnecting ?? this.syncReconnecting,
+      syncPaused: syncPaused ?? this.syncPaused,
       bg: bg ?? this.bg,
     );
   }
@@ -228,6 +246,9 @@ class AppColorsExtension extends ThemeExtension<AppColorsExtension> {
       locOfficeBg: Color.lerp(locOfficeBg, other.locOfficeBg, t)!,
       locUnknown: Color.lerp(locUnknown, other.locUnknown, t)!,
       locUnknownBg: Color.lerp(locUnknownBg, other.locUnknownBg, t)!,
+      syncLive: Color.lerp(syncLive, other.syncLive, t)!,
+      syncReconnecting: Color.lerp(syncReconnecting, other.syncReconnecting, t)!,
+      syncPaused: Color.lerp(syncPaused, other.syncPaused, t)!,
       bg: Color.lerp(bg, other.bg, t)!,
     );
   }

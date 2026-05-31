@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../db');
+const events = require('../events');
 
 // PUT /api/days/:date/user/:userId — WFH updates only (primary users)
 router.put('/:date/user/:userId', (req, res) => {
@@ -25,6 +26,8 @@ router.put('/:date/user/:userId', (req, res) => {
   db.prepare('UPDATE days SET work_location = ? WHERE date = ? AND user_id = ?').run(work_location, date, user.id);
 
   const row = db.prepare('SELECT * FROM days WHERE date = ? AND user_id = ?').get(date, user.id);
+  // Broadcast the changed record to other connected clients (date + user_id locate the cell).
+  events.broadcast('day', row);
   res.json(row);
 });
 

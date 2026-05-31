@@ -4,14 +4,20 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 const _key = 'theme_mode';
 
+/// Holds the selected [ThemeMode], persisted in SharedPreferences.
+///
+/// Migrated from `StateNotifierProvider`/`StateNotifier` to
+/// `NotifierProvider`/`Notifier` for Riverpod 3.x. `build()` returns the
+/// default synchronously and the stored value is loaded asynchronously,
+/// updating `state` once available.
 final themeModeProvider =
-    StateNotifierProvider<ThemeModeNotifier, ThemeMode>((ref) {
-  return ThemeModeNotifier();
-});
+    NotifierProvider<ThemeModeNotifier, ThemeMode>(ThemeModeNotifier.new);
 
-class ThemeModeNotifier extends StateNotifier<ThemeMode> {
-  ThemeModeNotifier() : super(ThemeMode.system) {
+class ThemeModeNotifier extends Notifier<ThemeMode> {
+  @override
+  ThemeMode build() {
     _load();
+    return ThemeMode.system;
   }
 
   Future<void> _load() async {

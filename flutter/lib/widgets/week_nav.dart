@@ -44,7 +44,7 @@ class WeekNav extends ConsumerWidget {
           if (!isCurrentWeek)
             TextButton(
               onPressed: () {
-                ref.read(currentWeekIndexProvider.notifier).state = current;
+                ref.read(currentWeekIndexProvider.notifier).set(current);
               },
               style: TextButton.styleFrom(
                 padding: const EdgeInsets.symmetric(horizontal: 8),
@@ -67,6 +67,6 @@ class WeekNav extends ConsumerWidget {
       newYear++;
       newWeek = 1;
     }
-    ref.read(currentWeekIndexProvider.notifier).state = (newYear, newWeek);
+    ref.read(currentWeekIndexProvider.notifier).set((newYear, newWeek));
   }
 }
