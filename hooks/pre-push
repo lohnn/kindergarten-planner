@@ -1,22 +1,202 @@
 #!/bin/bash
-# Pre-push hook: rebuild Flutter web and amend the commit if build output changed
-set -e
+###############################################################################
+# pre-push hook — Flutter web build + release-branch publisher
+#
+# WHY THIS EXISTS
+# ---------------
+# The Pi deploys the kindergarten-planner from a committed, pre-built Flutter
+# web bundle (`flutter/build/web/`). The Dockerfile does:
+#
+#       COPY flutter/build/web ./flutter/build/web
+#
+# There is NO Flutter SDK on the Pi (by design, dream I-016) — so the build
+# bundle MUST already exist, committed, on whatever branch the Pi deploys from.
+#
+# WHY A SEPARATE `release` BRANCH (not amend-on-main)
+# ---------------------------------------------------
+# The old hook rebuilt and `git commit --amend`-ed the source commit from
+# inside pre-push. That is broken: a pre-push hook runs AFTER git has already
+# computed the pack it is about to send. Amending HEAD here does NOT change
+# what the current push sends — the remote receives the ORIGINAL commit, and
+# the local branch silently diverges. It also pollutes `main` history with
+# build-artifact churn on every push.
+#
+# Instead, this hook treats `main` as pure source and publishes a deployable
+# snapshot onto a dedicated `release` branch:
+#
+#       release = (exact source tree of the pushed `main` commit)
+#               + (a freshly built flutter/build/web/ overlaid on top)
+#
+# The Pi tracks `release`, never `main`. `main` stays free of build churn.
+#
+# THE RELEASE-BRANCH CONTRACT (invariants I-002 / I-016 — DO NOT BREAK)
+# ---------------------------------------------------------------------
+#   * `release` MUST ALWAYS contain a complete, committed flutter/build/web/.
+#   * This hook is the SOLE guardian of that invariant. If it leaves `release`
+#     partial, or pushes a release commit lacking the build, the container
+#     serves nothing with no obvious error.
+#   * Therefore: build FIRST, fail LOUD (set -e + echo per step), and only
+#     push `release` AFTER a successful build + a verified non-empty bundle.
+#
+# ROBUSTNESS
+# ----------
+#   * Runs from any branch / dirty or clean tree: we never `git checkout` in
+#     the user's working dir. The release commit is assembled in a throwaway
+#     `git worktree` + `git commit-tree` plumbing, so the user's checkout,
+#     index, and Flutter build cache are never thrashed.
+#   * First run: `release` may not exist locally or on the remote — we create
+#     it from the pushed `main` commit.
+#   * A `trap` removes the temp worktree and prune-cleans on ANY exit path,
+#     so a mid-hook failure never leaves the repo on the wrong branch or with
+#     a dangling worktree.
+#   * Only `main` pushes trigger a release. Pushing any other branch is a
+#     no-op (fast exit).
+#
+# WHAT GETS PUSHED
+# ----------------
+# The hook pushes ONLY `release` to `origin` (push-at-push-time, consistent
+# with the user's intent: every `git push` of `main` yields a fresh deploy).
+# It NEVER touches `main` on the remote (the user's own push does that) and
+# NEVER force-pushes `main`. If the build fails, we abort BEFORE any release
+# push, so a broken bundle is never published.
+#
+# DEPLOY (Pi side) — docs should show:
+#       git fetch origin
+#       git checkout release        # first time; subsequently already on it
+#       git pull --ff-only origin release
+#       docker compose down --remove-orphans
+#       docker compose up -d --build --remove-orphans
+#   (--remove-orphans is mandatory — dreams I-014 / W-006 / SNG-006.)
+###############################################################################
+set -euo pipefail
 
-REPO_ROOT="$(git rev-parse --show-toplevel)"
-FLUTTER_DIR="$REPO_ROOT/flutter"
-
-# Find flutter on PATH or common locations
+# --- locate Flutter -------------------------------------------------------
+# SDK lives at /opt/flutter/bin and is symlinked into /usr/local/bin; the
+# extra paths keep this working on dev laptops too.
 export PATH="$PATH:$HOME/flutter/bin:$HOME/.flutter/bin:/opt/flutter/bin:/opt/homebrew/bin"
 
-echo "🔨 Building Flutter web..."
-(cd "$FLUTTER_DIR" && flutter build web --release)
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+# This hook runs inside the kindergarten-planner repo itself (origin =
+# github.com/lohnn/kindergarten-planner). The Flutter app is at the repo root
+# under flutter/. (In the HIVE monorepo this repo is embedded as a gitlink,
+# but core.hooksPath / git operations resolve to THIS inner repo.)
+FLUTTER_REL="flutter"
+FLUTTER_DIR="$REPO_ROOT/$FLUTTER_REL"
+BUILD_WEB_REL="$FLUTTER_REL/build/web"
 
-# Check if build output changed
-if ! git diff --quiet -- "$FLUTTER_DIR/build/web/"; then
-  echo "📦 Flutter build output changed, adding to commit..."
-  git add "$FLUTTER_DIR/build/web/"
-  git commit --amend --no-edit --no-verify
-  echo "✅ Commit amended with fresh Flutter web build."
-else
-  echo "✅ Flutter web build already up to date."
+SOURCE_BRANCH="main"          # branch the hook reacts to
+RELEASE_BRANCH="release"      # branch the Pi deploys from
+REMOTE="${1:-origin}"         # git passes <remote-name> as $1
+
+# --- 1. only act when `main` is being pushed ------------------------------
+# pre-push receives ref updates on stdin:
+#   <local-ref> <local-sha1> <remote-ref> <remote-sha1>
+# We capture the local SHA being pushed to refs/heads/main.
+PUSH_SHA=""
+while read -r local_ref local_sha remote_ref remote_sha; do
+  if [ "$local_ref" = "refs/heads/$SOURCE_BRANCH" ]; then
+    # All-zeroes local_sha means the branch is being DELETED — skip.
+    if [ "$local_sha" = "0000000000000000000000000000000000000000" ]; then
+      echo "ℹ️  $SOURCE_BRANCH is being deleted; no release build."
+      exit 0
+    fi
+    PUSH_SHA="$local_sha"
+  fi
+done
+
+if [ -z "$PUSH_SHA" ]; then
+  echo "ℹ️  pre-push: '$SOURCE_BRANCH' not in this push; skipping release build."
+  exit 0
 fi
+
+echo "🚀 pre-push: '$SOURCE_BRANCH' → building & publishing '$RELEASE_BRANCH' (source ${PUSH_SHA:0:9})"
+
+# --- 2. build Flutter web (in the live tree → reuses .dart_tool cache) -----
+echo "🔨 [1/4] Building Flutter web (flutter build web --release)..."
+( cd "$FLUTTER_DIR" && flutter build web --release )
+
+# Verify the bundle actually materialised — guards the release contract.
+if [ ! -f "$FLUTTER_DIR/build/web/index.html" ]; then
+  echo "❌ Build produced no index.html — refusing to publish a partial release."
+  exit 1
+fi
+echo "✅ [1/4] Build OK ($(find "$FLUTTER_DIR/build/web" -type f | wc -l | tr -d ' ') files)."
+
+# --- 3. assemble the release commit in a throwaway worktree ----------------
+# We never checkout branches in the user's working dir. A temp worktree gives
+# us an isolated index + tree to compose: pushed `main` source + fresh build.
+WORKTREE_DIR="$(mktemp -d "${TMPDIR:-/tmp}/kp-release.XXXXXX")"
+
+cleanup() {
+  local rc=$?
+  # Always detach + remove the temp worktree, whatever happened.
+  if [ -n "${WORKTREE_DIR:-}" ] && [ -d "$WORKTREE_DIR" ]; then
+    git worktree remove --force "$WORKTREE_DIR" >/dev/null 2>&1 || rm -rf "$WORKTREE_DIR"
+  fi
+  git worktree prune >/dev/null 2>&1 || true
+  if [ "$rc" -ne 0 ]; then
+    echo "❌ pre-push aborted (exit $rc). No release pushed. Your '$SOURCE_BRANCH' push is unaffected by this hook's failure path; working tree & branch untouched."
+  fi
+  return $rc
+}
+trap cleanup EXIT
+
+echo "📂 [2/4] Materialising release worktree from $SOURCE_BRANCH@${PUSH_SHA:0:9}..."
+# Seed the release branch ref on first run: prefer existing local release,
+# else remote release, else the pushed main commit.
+if git show-ref --verify --quiet "refs/heads/$RELEASE_BRANCH"; then
+  RELEASE_BASE="$RELEASE_BRANCH"
+elif git ls-remote --exit-code --heads "$REMOTE" "$RELEASE_BRANCH" >/dev/null 2>&1; then
+  echo "   ↳ '$RELEASE_BRANCH' exists on $REMOTE but not locally; fetching it."
+  git fetch "$REMOTE" "$RELEASE_BRANCH:$RELEASE_BRANCH" >/dev/null 2>&1 || true
+  RELEASE_BASE="$RELEASE_BRANCH"
+else
+  echo "   ↳ '$RELEASE_BRANCH' does not exist yet; first run will create it."
+  RELEASE_BASE=""
+fi
+
+# Lay down the EXACT source tree of the pushed main commit into the worktree.
+# Use a detached worktree at the pushed SHA so build artifacts and source are
+# always coherent with what was actually pushed to main.
+git worktree add --quiet --detach "$WORKTREE_DIR" "$PUSH_SHA"
+
+# Overlay the freshly built web bundle (whitelisted in flutter/.gitignore).
+echo "📦 [3/4] Overlaying fresh build/web into release tree..."
+mkdir -p "$WORKTREE_DIR/$FLUTTER_REL/build"
+rm -rf "$WORKTREE_DIR/$BUILD_WEB_REL"
+cp -a "$FLUTTER_DIR/build/web" "$WORKTREE_DIR/$FLUTTER_REL/build/web"
+
+# The worktree is a pristine checkout of $PUSH_SHA, so its index already equals
+# main's tree. The ONLY change we introduced is the overlaid build/web bundle,
+# which we force-add (it is whitelisted in flutter/.gitignore but we add -f to
+# be explicit and robust to gitignore drift). No other files were touched.
+git -C "$WORKTREE_DIR" add -f -- "$BUILD_WEB_REL" >/dev/null
+
+# Compose the release commit via commit-tree so we control the parent chain
+# without checking anything out in the user's working dir.
+RELEASE_TREE="$(git -C "$WORKTREE_DIR" write-tree)"
+COMMIT_MSG="release: deploy ${PUSH_SHA:0:9} (auto-built flutter web $(date -u +%Y-%m-%dT%H:%M:%SZ))"
+
+if [ -n "$RELEASE_BASE" ]; then
+  PARENT_SHA="$(git rev-parse "$RELEASE_BASE")"
+  # Skip republishing if nothing changed (same tree as current release tip).
+  RELEASE_TIP_TREE="$(git rev-parse "${PARENT_SHA}^{tree}")"
+  if [ "$RELEASE_TREE" = "$RELEASE_TIP_TREE" ]; then
+    echo "✅ Release tree identical to current '$RELEASE_BRANCH' tip — nothing to publish."
+    # Still ensure remote has it (e.g. first push of an up-to-date local release).
+    git push "$REMOTE" "$RELEASE_BRANCH:refs/heads/$RELEASE_BRANCH"
+    exit 0
+  fi
+  RELEASE_COMMIT="$(git commit-tree "$RELEASE_TREE" -p "$PARENT_SHA" -m "$COMMIT_MSG")"
+else
+  RELEASE_COMMIT="$(git commit-tree "$RELEASE_TREE" -m "$COMMIT_MSG")"
+fi
+
+# Move the local `release` branch ref to the new commit (no checkout needed).
+git update-ref "refs/heads/$RELEASE_BRANCH" "$RELEASE_COMMIT"
+echo "✅ [3/4] release commit ${RELEASE_COMMIT:0:9} (tree $(echo "$RELEASE_TREE" | cut -c1-9))."
+
+# --- 4. push ONLY release (never main, never force) ------------------------
+echo "⬆️  [4/4] Pushing '$RELEASE_BRANCH' to '$REMOTE'..."
+git push "$REMOTE" "refs/heads/$RELEASE_BRANCH:refs/heads/$RELEASE_BRANCH"
+echo "✅ Done. '$RELEASE_BRANCH' published. The Pi can now pull & deploy."

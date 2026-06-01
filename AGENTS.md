@@ -33,7 +33,14 @@ A self-hosted family scheduling tool. Two primary users (a couple) coordinate ki
 Express serves both the API (`/api/*`) and the Flutter web build (`flutter/build/web/`) as static files with SPA fallback. **No separate frontend container.** Traefik sits in front on port 80.
 
 ### Flutter Build Strategy
-The Flutter web build is **pre-built on the dev machine** and committed to `flutter/build/web/`. The Dockerfile copies it directly — no Flutter SDK needed on the Pi. A `pre-push` git hook rebuilds automatically. Run `./setup-hooks.sh` once per clone to enable it.
+The Flutter web build is **pre-built on the dev machine** and committed to `flutter/build/web/`. The Dockerfile copies it directly — no Flutter SDK needed on the Pi. Run `./setup-hooks.sh` once per clone to enable the `pre-push` hook.
+
+**Source vs. release branches.** `main` is pure source — it does **not** receive build-artifact churn. When you `git push` `main`, the `pre-push` hook (`hooks/pre-push`):
+1. Builds `flutter build web --release`.
+2. Assembles a deployable snapshot in a throwaway `git worktree` = the exact source tree of the pushed `main` commit + the fresh `flutter/build/web/` overlaid on top (uses `commit-tree` plumbing, so your working checkout and Flutter build cache are never touched).
+3. Pushes **only** the `release` branch to origin (never touches/force-pushes `main`). If the build fails, it aborts before any release push, so a broken bundle is never published.
+
+The **Pi deploys from `release`, never `main`.** The hook is the sole guarantor that `release` always carries a complete, fresh `build/web/`. The SDK on the dev machine lives at `/opt/flutter` (symlinked into `/usr/local/bin`); the hook also searches `$HOME/flutter/bin`, `$HOME/.flutter/bin`, and `/opt/homebrew/bin`.
 
 ### Partial API Updates
 `PUT /api/assignments/:date` accepts partial updates — only send the fields being changed. The backend merges with existing state and auto-fills default times when a user is assigned without specifying a time. Never send all fields when only one changed.
@@ -44,7 +51,8 @@ The two partners see each other's edits live. The mechanism:
 - **Transport:** Server-Sent Events over `GET /api/events` — added directly to the existing Express server (no second service, no Traefik change). Plain HTTP, no library; the SSE hub lives in `events.js`.
 - **Flow:** Clients still mutate via the normal REST endpoints. After each successful write, the route handler calls `events.broadcast(type, record)` to push the changed record to all *other* connected clients. Clients **merge the partial payload field-by-field** into in-memory Riverpod state — they do NOT refetch the week per event, so open popups and in-flight local edits are not disrupted (mirrors the partial-update PATCH discipline).
 - **Event contract** (documented at the top of `events.js`): named SSE events `assignment` / `day` / `settings`, each carrying the same record shape the corresponding `PUT` returns. Keep-alive comment frames (`:`-prefixed) every ~25s; an initial `: connected` comment. Comment frames are ignored by clients.
-- **Lifecycle:** The Flutter client uses the browser-native `EventSource` (via `package:web` + `dart:js_interop`) for named events + automatic reconnection. Tab visibility drives the connection via the DOM `visibilitychange` event: **hidden → close the stream** (frees the server resource), **visible → refetch the current week once (catch up), then reopen**. `WidgetsBindingObserver` is NOT used — it is unreliable for browser tab visibility.
+- **Lifecycle:** The Flutter client uses the browser-native `EventSource` (via `package:web` + `dart:js_interop`) for named events + automatic reconnection. Tab visibility drives the connection: **hidden → close the stream** (frees the server resource), **visible → refetch the current week once (catch up), then reopen**. `WidgetsBindingObserver` is NOT used — it is unreliable for browser tab visibility.
+- **iOS Safari quirk (important):** the lifecycle listens to **three** DOM signals, not just one, because iPhone Safari is unreliable on the return-from-background path. It backgrounds the page by suspending JS and silently killing the SSE socket; on return it frequently restores from **bfcache**, which fires `pageshow` with `persisted == true` and does **NOT** fire `visibilitychange`. So the client wires `visibilitychange` **+ `pageshow` (persisted) + `pagehide`**, all idempotent, so the stream always reopens and resyncs when she comes back. Without the `pageshow` handler, iPhone users would return to stale data with the indicator stuck on "Paused". **This behavior can only be fully verified on a real iPhone** — manual check: open the planner on the iPhone, switch to another app for ~30s, change a value from the other device, return to Safari, and confirm the value updates and the indicator returns to "Live".
 
 ### State Management (Riverpod 3.x)
 The app uses **Riverpod 3.2.1** with **no code generation** (`riverpod_annotation` / `riverpod_generator` / `build_runner` are intentionally not used — they have no 3.2.1 release and the project uses no `@riverpod`/`.g.dart`). Providers use the modern `Notifier` / `AsyncNotifier` API:
@@ -96,10 +104,16 @@ The app uses **Riverpod 3.2.1** with **no code generation** (`riverpod_annotatio
 
 ## Deployment
 
+The Pi deploys from the **`release`** branch (NOT `main`). `release` carries the source plus a fresh, committed `flutter/build/web/`, published automatically by the dev-machine `pre-push` hook (see Flutter Build Strategy). `main` is pure source and must not be deployed (it has no guarantee of a current build).
+
 On the Pi:
 
 ```bash
-git pull && docker compose up -d --build --remove-orphans
+git fetch origin
+git checkout release          # first time only; afterwards you're already on it
+git pull --ff-only origin release
+docker compose down --remove-orphans
+docker compose up -d --build --remove-orphans
 ```
 
 **Always use `--remove-orphans`.** Without it, stale containers from old service names persist with their Traefik labels and intercept routes. The symptom is a 404 that works inside the container but not through Traefik.
