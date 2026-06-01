@@ -27,6 +27,7 @@ migrate_working_dir/
 .flutter-plugins-dependencies
 .pub-cache/
 .pub/
-# Build output (except web, which we commit pre-built for the Pi)
-/build/*/
-!/build/web/
+# Build output — NOT committed on main. The web bundle is published to the
+# `release` branch by the pre-push hook (which force-adds it there), so `main`
+# stays pure source. The Pi deploys from `release`, never `main`.
+/build/

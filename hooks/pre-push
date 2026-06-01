@@ -160,16 +160,18 @@ fi
 # always coherent with what was actually pushed to main.
 git worktree add --quiet --detach "$WORKTREE_DIR" "$PUSH_SHA"
 
-# Overlay the freshly built web bundle (whitelisted in flutter/.gitignore).
+# Overlay the freshly built web bundle. NOTE: build/web is gitignored on `main`
+# (flutter/.gitignore ignores /build/) and is NOT present in the source tree —
+# it lives ONLY on `release`, put there by this hook. We force-add it below.
 echo "📦 [3/4] Overlaying fresh build/web into release tree..."
 mkdir -p "$WORKTREE_DIR/$FLUTTER_REL/build"
 rm -rf "$WORKTREE_DIR/$BUILD_WEB_REL"
 cp -a "$FLUTTER_DIR/build/web" "$WORKTREE_DIR/$FLUTTER_REL/build/web"
 
-# The worktree is a pristine checkout of $PUSH_SHA, so its index already equals
-# main's tree. The ONLY change we introduced is the overlaid build/web bundle,
-# which we force-add (it is whitelisted in flutter/.gitignore but we add -f to
-# be explicit and robust to gitignore drift). No other files were touched.
+# The worktree is a pristine checkout of $PUSH_SHA (pure source, no build/web).
+# The ONLY thing we add to the release tree is the freshly built bundle, which
+# we force-add (`-f`) precisely because /build/ is gitignored on main. No other
+# files are touched, so the release tree = main's source + the fresh build.
 git -C "$WORKTREE_DIR" add -f -- "$BUILD_WEB_REL" >/dev/null
 
 # Compose the release commit via commit-tree so we control the parent chain
