@@ -33,7 +33,7 @@ A self-hosted family scheduling tool. Two primary users (a couple) coordinate ki
 Express serves both the API (`/api/*`) and the Flutter web build (`flutter/build/web/`) as static files with SPA fallback. **No separate frontend container.** Traefik sits in front on port 80.
 
 ### Flutter Build Strategy
-The Flutter web build is **pre-built on the dev machine** and committed to `flutter/build/web/`. The Dockerfile copies it directly — no Flutter SDK needed on the Pi. Run `./setup-hooks.sh` once per clone to enable the `pre-push` hook.
+The Flutter web build is **pre-built on the dev machine** (no Flutter SDK on the Pi). It is **not** committed on `main` — `flutter/build/web/` is gitignored there. The bundle is published only to the `release` branch by the `pre-push` hook, and the Dockerfile copies it from that branch. Run `./setup-hooks.sh` once per clone to enable the hook.
 
 **Source vs. release branches.** `main` is pure source — it does **not** receive build-artifact churn. When you `git push` `main`, the `pre-push` hook (`hooks/pre-push`):
 1. Builds `flutter build web --release`.
