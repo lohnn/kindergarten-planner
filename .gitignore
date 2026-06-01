@@ -1,0 +1,6 @@
+node_modules/
+data/
+*.db
+dist/
+snapshots/output/
+screenshot.png
