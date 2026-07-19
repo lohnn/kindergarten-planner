@@ -1,3 +1,6 @@
+---
+description: Kindergarten schedule planner — Node.js + SQLite backend with a Flutter web frontend.
+---
 # Agent Instructions — Kindergarten Planner
 
 ## After Every Iteration
